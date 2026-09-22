@@ -1,0 +1,2858 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spring AOP Revision</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap">
+<style>
+/* ============================== TOKENS ============================== */
+:root{
+  --paper:#EBEEF2;  --card:#FFFFFF;  --sunk:#F3F5F8;
+  --ink:#141A22;    --ink-2:#39424F; --muted:#5C6673;
+  --rule:#D3D9E1;   --rule-soft:#E3E8EE;
+
+  --accent:#C9531A;            /* signal orange - running / emphasis      */
+  --concept:#2C5C8F;           /* slate blue    - definitions & concepts  */
+  --safe:#15765A;              /* green         - correct practice        */
+  --danger:#B8332A;            /* red           - bug / gotcha            */
+  --tip:#96660A;               /* amber         - interview tip           */
+  --deep:#5E3E96;              /* violet        - internals / JVM detail  */
+
+  --concept-bg:#E7EEF6; --safe-bg:#E2F1EB; --danger-bg:#FBE8E6;
+  --tip-bg:#FAF0DC;     --deep-bg:#EEE9F7; --accent-bg:#FBEADF;
+
+  --code-bg:#161B23; --code-ink:#DDE3EC; --code-key:#F0A15E;
+  --code-str:#8FD19E; --code-com:#7C8898; --code-num:#9BB8F2;
+
+  --shadow:0 1px 0 rgba(20,26,34,.05), 0 6px 20px -12px rgba(20,26,34,.30);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0E1116; --card:#161B23; --sunk:#1B212B;
+    --ink:#E4E9F0;   --ink-2:#B6C0CD; --muted:#8C97A6;
+    --rule:#2A323E;  --rule-soft:#222933;
+
+    --accent:#FF9257; --concept:#7FB2E8; --safe:#4FC79C;
+    --danger:#F4796C; --tip:#E3B45A;     --deep:#B197EC;
+
+    --concept-bg:#16283C; --safe-bg:#10302A; --danger-bg:#361E1E;
+    --tip-bg:#33280F;     --deep-bg:#251E3B; --accent-bg:#35220F;
+
+    --code-bg:#0B0E13; --code-ink:#D6DDE8;
+    --shadow:0 1px 0 rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0E1116; --card:#161B23; --sunk:#1B212B;
+  --ink:#E4E9F0;   --ink-2:#B6C0CD; --muted:#8C97A6;
+  --rule:#2A323E;  --rule-soft:#222933;
+
+  --accent:#FF9257; --concept:#7FB2E8; --safe:#4FC79C;
+  --danger:#F4796C; --tip:#E3B45A;     --deep:#B197EC;
+
+  --concept-bg:#16283C; --safe-bg:#10302A; --danger-bg:#361E1E;
+  --tip-bg:#33280F;     --deep-bg:#251E3B; --accent-bg:#35220F;
+
+  --code-bg:#0B0E13; --code-ink:#D6DDE8;
+  --shadow:0 1px 0 rgba(0,0,0,.4), 0 8px 24px -14px rgba(0,0,0,.8);
+}
+
+/* ============================== BASE ============================== */
+*{box-sizing:border-box}
+html{scroll-behavior:smooth; scroll-padding-top:1.5rem}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:"Source Serif 4", Georgia, "Times New Roman", serif;
+  font-size:17px; line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4,.disp{font-family:"IBM Plex Sans Condensed","Arial Narrow",system-ui,sans-serif; text-wrap:balance}
+code,kbd,.mono{font-family:"IBM Plex Mono",ui-monospace,Consolas,monospace}
+
+/* ============================== SHELL ============================== */
+.shell{display:grid; grid-template-columns:250px minmax(0,1fr); gap:44px; max-width:1240px; margin:0 auto; padding:0 26px}
+
+/* --- TOC rail --- */
+.rail{position:sticky; top:0; align-self:start; height:100vh; overflow-y:auto; padding:26px 0 40px; border-right:1px solid var(--rule)}
+.rail .brand{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--accent); margin-bottom:14px}
+.rail .brand{display:flex; align-items:center; justify-content:space-between}
+.rail-toggle{background:none; border:1px solid var(--rule); color:var(--muted); font-family:"IBM Plex Mono",monospace; font-size:11px; line-height:1; padding:4px 7px; cursor:pointer; margin-right:8px}
+.rail-toggle:hover{border-color:var(--accent); color:var(--accent)}
+.rail-toggle:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+#rail-open{display:none; position:fixed; left:0; top:50%; transform:translateY(-50%); z-index:30; background:var(--card); border:1px solid var(--rule); border-left:0; color:var(--muted); font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.1em; writing-mode:vertical-rl; padding:12px 6px; cursor:pointer}
+#rail-open:hover{color:var(--accent); border-color:var(--accent)}
+.rail-collapsed .shell{grid-template-columns:minmax(0,1fr); gap:0}
+.rail-collapsed .rail{display:none}
+.rail-collapsed #rail-open{display:block}
+.rail-collapsed main{max-width:1040px; margin:0 auto}
+.rail-collapsed p, .rail-collapsed ul, .rail-collapsed ol{max-width:82ch}
+.rail a{display:block; text-decoration:none; color:var(--ink-2); font-family:"IBM Plex Sans Condensed",sans-serif; font-size:13.5px; line-height:1.35; padding:5px 10px 5px 0; border-left:2px solid transparent; padding-left:10px}
+.rail a:hover{color:var(--accent); border-left-color:var(--accent); background:var(--sunk)}
+.rail a:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.rail a .n{font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--muted); margin-right:7px}
+.rail .grp{font-family:"IBM Plex Mono",monospace; font-size:9.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin:18px 0 6px; padding-left:10px}
+
+/* --- main column --- */
+main{max-width:790px; padding:34px 0 120px}
+
+/* ============================== HEADER ============================== */
+.masthead{border-bottom:3px solid var(--ink); padding-bottom:18px; margin-bottom:8px}
+.eyebrow{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--accent); margin:0 0 8px}
+h1{font-size:clamp(34px,5.4vw,50px); line-height:1.02; font-weight:700; margin:0 0 10px; letter-spacing:-.015em}
+.sub{color:var(--muted); font-size:16px; margin:0}
+
+/* ============================== TOOLBAR ============================== */
+.toolbar{position:fixed; right:16px; top:14px; z-index:30; display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end}
+.tbtn{background:var(--card); color:var(--ink-2); border:1px solid var(--rule); font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.11em; text-transform:uppercase; padding:7px 11px; cursor:pointer}
+.tbtn:hover{border-color:var(--accent); color:var(--accent)}
+.tbtn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.tbtn.primary{border-color:var(--accent); color:var(--accent); font-weight:600}
+
+/* --- sync button states --- */
+#btn-sync.on{border-color:var(--safe); color:var(--safe)}
+#btn-sync.busy{border-color:var(--tip); color:var(--tip)}
+#btn-sync.err{border-color:var(--danger); color:var(--danger)}
+.syncpanel{max-width:430px}
+.syncpanel .warn{font-family:"IBM Plex Sans Condensed",sans-serif; font-size:12.5px; color:var(--danger); margin-top:6px}
+.syncpanel ol{font-family:"IBM Plex Sans Condensed",sans-serif; font-size:13px; color:var(--ink-2); padding-left:20px; margin:0 0 12px}
+.syncpanel ol li{margin-bottom:4px}
+.syncpanel .state{font-family:"IBM Plex Mono",monospace; font-size:11px; letter-spacing:.06em; color:var(--muted); margin-top:10px}
+
+/* ============================== NOTE EDITOR ============================== */
+.addrow{margin-top:20px; padding-top:12px; border-top:1px dashed var(--rule)}
+.addbtn{background:none; border:1px dashed var(--rule); color:var(--muted); font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.11em; text-transform:uppercase; padding:7px 12px; cursor:pointer}
+.addbtn:hover{border-color:var(--accent); color:var(--accent); border-style:solid}
+.addbtn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+
+.editor{border:1px solid var(--accent); background:var(--card); padding:15px 16px 16px; margin:16px 0; box-shadow:var(--shadow)}
+.editor .row{margin-bottom:11px}
+.editor .row:last-child{margin-bottom:0}
+.editor label{display:block; font-family:"IBM Plex Mono",monospace; font-size:9.5px; letter-spacing:.15em; text-transform:uppercase; color:var(--muted); margin-bottom:5px}
+.editor input[type=text],.editor textarea,.editor select{width:100%; background:var(--sunk); color:var(--ink); border:1px solid var(--rule); padding:8px 10px; font-family:"IBM Plex Mono",monospace; font-size:13px; line-height:1.55}
+.editor textarea{resize:vertical; min-height:86px}
+.editor textarea.code{min-height:64px}
+.editor input:focus,.editor textarea:focus,.editor select:focus{outline:2px solid var(--accent); outline-offset:-1px; border-color:var(--accent)}
+.editor .hint{font-family:"IBM Plex Sans Condensed",sans-serif; font-size:12px; color:var(--muted); margin-top:5px}
+.editor .btns{display:flex; gap:8px; margin-top:14px}
+
+.chips{display:flex; flex-wrap:wrap; gap:6px}
+.chip{cursor:pointer; position:relative}
+.chip input{position:absolute; opacity:0; width:1px; height:1px}
+.chip span{display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.11em; text-transform:uppercase; padding:6px 10px; border:1px solid currentColor; opacity:.5}
+.chip input:checked + span{opacity:1; font-weight:600; box-shadow:inset 0 0 0 2px currentColor}
+.chip input:focus-visible + span{outline:2px solid var(--accent); outline-offset:2px}
+.chip.c-def span{color:var(--concept)} .chip.c-win span{color:var(--safe)} .chip.c-trap span{color:var(--danger)}
+.chip.c-ask span{color:var(--tip)}     .chip.c-under span{color:var(--deep)}
+
+.noteops{display:flex; gap:12px; margin-bottom:9px}
+.opbtn{background:none; border:0; padding:0; cursor:pointer; font-family:"IBM Plex Mono",monospace; font-size:9.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--muted); text-decoration:underline; text-underline-offset:2px}
+.opbtn:hover{color:var(--accent)}
+.opbtn:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.box .lbl .tag{font-weight:400; opacity:.7; letter-spacing:.1em}
+.byline{font-family:"IBM Plex Mono",monospace; font-size:9.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--accent); align-self:center}
+
+/* ============================== IMAGES ============================== */
+.dropzone{position:relative; border:1px dashed var(--rule); background:var(--sunk); padding:16px 14px; text-align:center; cursor:pointer}
+.dropzone:hover,.dropzone.over{border-color:var(--accent); border-style:solid; background:var(--accent-bg)}
+.dropzone input[type=file]{position:absolute; opacity:0; width:1px; height:1px}
+.zonetext{font-family:"IBM Plex Mono",monospace; font-size:11px; line-height:1.7; color:var(--muted); letter-spacing:.02em}
+.dropzone:hover .zonetext,.dropzone.over .zonetext{color:var(--accent)}
+.thumbs{display:flex; flex-wrap:wrap; gap:8px; margin-top:10px}
+.thumb{position:relative; width:94px; height:70px; border:1px solid var(--rule); background:var(--sunk); overflow:hidden}
+.thumb img{width:100%; height:100%; object-fit:cover; display:block}
+.thumbx{position:absolute; top:0; right:0; width:20px; height:20px; line-height:18px; background:var(--danger); color:#fff; border:0; cursor:pointer; font-family:"IBM Plex Mono",monospace; font-size:13px; padding:0}
+.thumbx:hover{filter:brightness(1.15)}
+.notefig{margin:12px 0; padding:0; border:1px solid var(--rule); background:var(--card); box-shadow:none}
+.notefig img{display:block; width:100%; height:auto}
+
+.toast{position:fixed; left:50%; bottom:26px; transform:translateX(-50%); z-index:50; background:var(--ink); color:var(--paper); font-family:"IBM Plex Mono",monospace; font-size:12px; letter-spacing:.03em; padding:11px 18px; box-shadow:var(--shadow); max-width:90vw; text-align:center}
+.unsaved .tbtn.primary{background:var(--accent); color:var(--card)}
+
+/* ============================== SECTIONS ============================== */
+section{margin-top:52px; scroll-margin-top:20px}
+h2{font-size:27px; font-weight:700; margin:0 0 4px; letter-spacing:-.01em; display:flex; align-items:baseline; gap:12px}
+h2 .num{font-family:"IBM Plex Mono",monospace; font-size:13px; font-weight:500; color:var(--accent); flex:none}
+.h2rule{height:2px; background:var(--ink); margin:0 0 20px}
+h3{font-size:19px; font-weight:600; margin:28px 0 8px; color:var(--ink)}
+h4{font-size:15.5px; font-weight:600; margin:20px 0 6px; color:var(--ink-2); font-family:"IBM Plex Mono",monospace; letter-spacing:-.01em}
+p{margin:0 0 13px; max-width:68ch}
+ul,ol{margin:0 0 14px; padding-left:22px; max-width:66ch}
+li{margin:0 0 6px}
+li::marker{color:var(--accent)}
+hr{border:0; border-top:1px solid var(--rule-soft); margin:26px 0}
+a{color:var(--concept)}
+
+/* ============================== HIGHLIGHT SPANS ============================== */
+.k   {background:var(--concept-bg); color:var(--concept); padding:1px 5px; font-weight:600; font-family:"IBM Plex Mono",monospace; font-size:.86em}
+.good{background:var(--safe-bg);    color:var(--safe);    padding:1px 5px; font-weight:600}
+.bad {background:var(--danger-bg);  color:var(--danger);  padding:1px 5px; font-weight:600}
+.hot {background:var(--tip-bg);     color:var(--tip);     padding:1px 5px; font-weight:600}
+.jvm {background:var(--deep-bg);    color:var(--deep);    padding:1px 5px; font-weight:600}
+b,strong{font-weight:600; color:var(--ink)}
+p code,li code,td code{background:var(--sunk); border:1px solid var(--rule-soft); padding:.5px 5px; font-size:.84em; color:var(--ink)}
+
+/* ============================== CALLOUTS ============================== */
+.box{border:1px solid var(--rule); background:var(--card); padding:14px 16px 4px; margin:16px 0; box-shadow:var(--shadow)}
+.box > .lbl{font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.17em; text-transform:uppercase; font-weight:600; display:block; margin-bottom:7px}
+.box p:last-child,.box ul:last-child,.box ol:last-child{margin-bottom:12px}
+.box.def   {background:var(--concept-bg); border-color:var(--concept)} .box.def   >.lbl{color:var(--concept)}
+.box.win   {background:var(--safe-bg);    border-color:var(--safe)}    .box.win   >.lbl{color:var(--safe)}
+.box.trap  {background:var(--danger-bg);  border-color:var(--danger)}  .box.trap  >.lbl{color:var(--danger)}
+.box.ask   {background:var(--tip-bg);     border-color:var(--tip)}     .box.ask   >.lbl{color:var(--tip)}
+.box.under {background:var(--deep-bg);    border-color:var(--deep)}    .box.under >.lbl{color:var(--deep)}
+
+/* ============================== CODE ============================== */
+pre{background:var(--code-bg); color:var(--code-ink); padding:14px 16px; margin:14px 0; overflow-x:auto; border:1px solid var(--rule); font-size:13px; line-height:1.55; box-shadow:var(--shadow)}
+pre code{font-family:"IBM Plex Mono",monospace; background:none; border:0; padding:0; color:inherit; white-space:pre}
+.cm{color:var(--code-com); font-style:italic}
+.kw{color:var(--code-key)} .st{color:var(--code-str)} .nu{color:var(--code-num)}
+
+/* ============================== TABLES ============================== */
+.tw{overflow-x:auto; margin:16px 0; border:1px solid var(--rule); box-shadow:var(--shadow)}
+table{border-collapse:collapse; width:100%; background:var(--card); font-size:14.5px; min-width:520px}
+th{background:var(--sunk); text-align:left; font-family:"IBM Plex Sans Condensed",sans-serif; font-weight:600; font-size:13px; letter-spacing:.02em; padding:9px 12px; border-bottom:2px solid var(--rule); color:var(--ink)}
+td{padding:9px 12px; border-bottom:1px solid var(--rule-soft); vertical-align:top; font-variant-numeric:tabular-nums}
+tr:last-child td{border-bottom:0}
+td.mono,th.mono{font-family:"IBM Plex Mono",monospace; font-size:12.5px}
+
+/* ============================== FIGURES ============================== */
+figure{margin:20px 0; background:var(--card); border:1px solid var(--rule); padding:16px; box-shadow:var(--shadow)}
+figure svg{display:block; width:100%; max-width:100%; height:auto; color:var(--ink-2)}
+figcaption{font-family:"IBM Plex Sans Condensed",sans-serif; font-size:13px; color:var(--muted); margin-top:11px; padding-top:9px; border-top:1px solid var(--rule-soft)}
+
+/* ============================== LEGEND ============================== */
+.legend{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:1px; background:var(--rule); border:1px solid var(--rule); margin:22px 0 4px}
+.legend div{background:var(--card); padding:10px 12px; font-size:13.5px; color:var(--ink-2)}
+.legend .sw{font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.14em; text-transform:uppercase; font-weight:600; display:block; margin-bottom:3px}
+
+/* ============================== Q&A ============================== */
+.qa{border-top:1px solid var(--rule); margin-top:14px}
+.qa details{border-bottom:1px solid var(--rule)}
+.qa summary{cursor:pointer; padding:11px 4px 11px 0; font-family:"IBM Plex Sans Condensed",sans-serif; font-weight:600; font-size:16px; list-style:none; display:flex; gap:11px; align-items:baseline}
+.qa summary::-webkit-details-marker{display:none}
+.qa summary::before{content:"Q" attr(data-q); font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--accent); flex:none; min-width:30px}
+.qa summary:hover{color:var(--accent)}
+.qa details[open] summary{color:var(--accent)}
+.qa .ans{padding:0 4px 14px 41px; font-size:15.5px}
+.qa .ans p{margin-bottom:9px}
+.qa .ans ul{margin-bottom:9px}
+
+/* ============================== MISC ============================== */
+.pill{display:inline-block; font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.13em; text-transform:uppercase; border:1px solid currentColor; padding:2px 7px; margin:0 5px 5px 0; color:var(--muted)}
+.pill.p1{color:var(--danger)} .pill.p2{color:var(--tip)} .pill.p3{color:var(--concept)}
+.lead{font-size:18.5px; color:var(--ink-2)}
+footer{margin-top:64px; padding-top:18px; border-top:3px solid var(--ink); font-family:"IBM Plex Mono",monospace; font-size:11.5px; color:var(--muted); letter-spacing:.04em}
+
+/* ============================== PRACTICE PROBLEMS ============================== */
+table.probs{counter-reset:prob}
+table.probs tr{cursor:pointer}
+table.probs tr:first-child{cursor:default}
+table.probs td:first-child{font-family:"IBM Plex Sans Condensed",sans-serif; font-weight:600; white-space:nowrap}
+table.probs td:first-child::before{counter-increment:prob; content:counter(prob,decimal-leading-zero); font-family:"IBM Plex Mono",monospace; font-size:10.5px; font-weight:400; color:var(--muted); margin-right:10px}
+table.probs tr:hover td{background:var(--accent-bg)}
+table.probs tr:hover td:first-child{color:var(--accent)}
+table.probs td:last-child{color:var(--ink-2); font-size:14px}
+.lv{font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.11em; text-transform:uppercase; border:1px solid currentColor; padding:2px 7px; white-space:nowrap}
+.lv.e{color:var(--safe)} .lv.m{color:var(--tip)} .lv.h{color:var(--danger)}
+.pdot{display:inline-block; width:9px; height:9px; border-radius:50%; margin-left:9px; vertical-align:middle; border:1px solid var(--rule); background:transparent}
+.pdot.ps-attempted{background:var(--tip); border-color:var(--tip)}
+.pdot.ps-solved{background:var(--safe); border-color:var(--safe)}
+.pdot.ps-revisit{background:var(--danger); border-color:var(--danger)}
+.probhint{font-family:"IBM Plex Mono",monospace; font-size:10.5px; letter-spacing:.06em; color:var(--muted); margin:-8px 0 0}
+
+/* ============================== SOLUTION EDITOR ============================== */
+.cp-overlay{position:fixed; inset:0; z-index:100; background:rgba(8,11,16,.74); display:flex; align-items:center; justify-content:center; padding:18px}
+.cp-modal{background:var(--card); border:1px solid var(--accent); width:min(880px,100%); max-height:94vh; display:flex; flex-direction:column; box-shadow:0 30px 80px -20px rgba(0,0,0,.7)}
+.cp-head{display:flex; justify-content:space-between; align-items:flex-start; gap:14px; padding:15px 18px 12px; border-bottom:2px solid var(--ink)}
+.cp-head h3{margin:2px 0 0; font-size:22px}
+.cp-tag{font-family:"IBM Plex Mono",monospace; font-size:10px; letter-spacing:.16em; text-transform:uppercase; color:var(--accent)}
+.cp-body.editor{border:0; box-shadow:none; margin:0; padding:15px 18px; overflow-y:auto; flex:1}
+.cp-body textarea{min-height:70px}
+.cp-body textarea.cp-code{min-height:300px; background:var(--code-bg); color:var(--code-ink); tab-size:4; white-space:pre; overflow-x:auto}
+.cp-preview{display:none; margin:0; min-height:300px; max-height:55vh; overflow:auto}
+.cp-two{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+.cp-foot{display:flex; gap:8px; align-items:center; flex-wrap:wrap; padding:12px 18px; border-top:1px solid var(--rule)}
+.cp-stamp{margin-left:auto; font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--muted)}
+
+@media (max-width:900px){
+  .shell{grid-template-columns:1fr; gap:0}
+  .rail{position:static; height:auto; border-right:0; border-bottom:1px solid var(--rule); padding:20px 0; max-height:270px}
+  main{padding-top:24px}
+  body{font-size:16px}
+}
+@media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto} *{transition:none!important} }
+</style>
+</head>
+<body>
+
+<!--
+=====================================================================
+  YOU DO NOT NEED TO EDIT THIS FILE BY HAND.
+
+  Open the page in a browser and use the buttons:
+
+      + Add my note   at the bottom of every section
+                      -> pick a colour, type a heading and your note,
+                         paste code if you want. No tags, no escaping.
+
+      + Topic         top-right
+                      -> creates a whole new topic ANYWHERE in the
+                         middle, with its own index entry.
+
+      Sync            top-right
+                      -> notes live in ONE secret GitHub gist, shared by
+                         every machine. Connect once per system and your
+                         notes appear on both automatically: no download,
+                         no commit, no "which copy is newest".
+
+      Save to file    top-right
+                      -> downloads this page with your notes baked in.
+                         Replace the file in the notes folder
+                         and your notes are permanent + in git.
+
+  ---------------------------------------------------------------------
+  SETTING UP SYNC (once per machine)
+  ---------------------------------------------------------------------
+  1. github.com/settings/personal-access-tokens -> new fine-grained token
+     Account permissions -> Gists -> Read and write.  Nothing else.
+  2. Press "Sync", paste the token, leave "Gist id" EMPTY, press Connect.
+     A secret gist is created and its id is shown to you.
+  3. On the OTHER machine: press "Sync", paste a token and press Connect.
+     Leaving the gist id EMPTY is fine there too - it finds the gist your
+     account already has. Paste the id only if you want to be explicit.
+
+  Reconnecting after Disconnect never makes a second gist: the id is
+  remembered, and a new one is only created after you confirm.
+
+  This page shares the connection with MultiThreading_Notes.html, so
+  connecting in either one connects both. Inside the single gist each
+  page keeps its own file:
+
+      springaop-notes.json             <- this page
+      dsa-notes.json                   <- the DSA page
+      collectionframework-notes.json   <- the collections page
+      multithreading-notes.json        <- the multithreading page
+
+  so the two sets of notes can never overwrite each other.
+
+  From then on: an edit auto-saves to the gist, and opening the page (or
+  switching back to the tab) pulls whatever the other machine wrote.
+
+  Both sides can edit while offline. Notes and topics carry an id and a
+  timestamp, so syncing merges them by id with the newer edit winning —
+  nothing is overwritten wholesale, and deletes travel too.
+
+  The token is kept in this browser's localStorage only. It is NEVER
+  written into this HTML file, so "Save to file" and git can never leak
+  it. Because localStorage is per browser, the token has to be pasted
+  once on each machine — but it is the SAME token string, not a new one.
+  One token covers both notes pages and every machine. Make a second one
+  only if you want to revoke a single machine's access on its own.
+
+  Without sync, notes are kept in the browser as you type, but a browser
+  can be cleared — press "Save to file" when you finish a session.
+
+  Everything below is the manual fallback, only if you ever want to
+  hand-write a section.
+=====================================================================
+
+  RULE OF THUMB
+  Every section needs TWO things:
+      A) one <a> line in the left TOC  (<nav class="rail">)
+      B) one <section> block in <main>
+  Put both in the same relative position and the order stays in sync.
+
+---------------------------------------------------------------------
+  1. ADD A BRAND NEW SECTION AT THE END
+---------------------------------------------------------------------
+  In the TOC add:
+      <a href="#s32"><span class="n">32</span>My new topic</a>
+
+  In <main>, before the closing </main>, add:
+
+  <section id="s32">
+  <h2><span class="num">32</span>My new topic</h2><div class="h2rule"></div>
+
+  <p>Normal paragraph text goes here.</p>
+
+  </section>
+
+---------------------------------------------------------------------
+  2. INSERT A TOPIC *IN BETWEEN* TWO EXISTING ONES
+---------------------------------------------------------------------
+  Do NOT renumber everything. Use a letter suffix instead.
+  Example: a new topic between 15 (HashMap) and 16 (LinkedHashMap):
+
+  TOC  -> paste this line between the s15 and s16 links:
+      <a href="#s15b"><span class="n">15b</span>My new sub-topic</a>
+
+  MAIN -> paste this block between </section> of s15
+          and <section id="s16">:
+
+  <section id="s15b">
+  <h2><span class="num">15b</span>My new sub-topic</h2><div class="h2rule"></div>
+  <p>...</p>
+  </section>
+
+  The id in the TOC (#s15b) must match the id on the <section>.
+  That is the ONLY thing that has to match — nothing else is hardcoded.
+
+---------------------------------------------------------------------
+  3. THE 5 COLOURED CALLOUT BOXES
+---------------------------------------------------------------------
+  <div class="box def">   <span class="lbl">Definition</span>       ... </div>  BLUE
+  <div class="box win">   <span class="lbl">Do this</span>          ... </div>  GREEN
+  <div class="box trap">  <span class="lbl">Trap</span>             ... </div>  RED
+  <div class="box ask">   <span class="lbl">Asked</span>            ... </div>  AMBER
+  <div class="box under"> <span class="lbl">Under the hood</span>   ... </div>  VIOLET
+
+  The text inside <span class="lbl"> is just a label — write anything
+  you like there ("My doubt", "Revise again", "Company: TCS").
+
+  Full example:
+
+  <div class="box trap">
+  <span class="lbl">Trap</span>
+  <p>Something that breaks in production.</p>
+  </div>
+
+---------------------------------------------------------------------
+  4. INLINE HIGHLIGHT COLOURS (use inside any paragraph or list)
+---------------------------------------------------------------------
+  <span class="k">term</span>       blue mono   — a concept / keyword
+  <span class="good">text</span>    green       — correct
+  <span class="bad">text</span>     red         — wrong / dangerous
+  <span class="hot">text</span>     amber       — interview point
+  <span class="jvm">text</span>     violet      — JVM internal
+  <code>map.getOrDefault()</code>       grey chip   — any code word
+
+---------------------------------------------------------------------
+  5. A CODE BLOCK
+---------------------------------------------------------------------
+  <pre><code>Map&lt;String,Integer&gt; m = new HashMap&lt;&gt;();
+m.merge("a", 1, Integer::sum);</code></pre>
+
+  Optional syntax colours inside the code block:
+      <span class="kw">public</span>     orange  — keywords
+      <span class="st">"text"</span>     green   — strings
+      <span class="nu">42</span>         blue    — numbers
+      <span class="cm">// note</span>    grey    — comments
+
+  IMPORTANT: inside <pre> you must escape these three characters
+      <   becomes  &lt;        (e.g. List&lt;String&gt;)
+      >   becomes  &gt;
+      &   becomes  &amp;
+  Everything else can be typed normally. Indentation is preserved
+  exactly as you type it, so do not indent the <pre> block itself.
+
+---------------------------------------------------------------------
+  6. A TABLE
+---------------------------------------------------------------------
+  <div class="tw"><table>
+  <tr><th>Column A</th><th>Column B</th></tr>
+  <tr><td>row 1</td><td>value</td></tr>
+  <tr><td>row 2</td><td>value</td></tr>
+  </table></div>
+
+  Keep the <div class="tw"> wrapper — it makes wide tables scroll
+  sideways instead of breaking the page on a phone.
+
+---------------------------------------------------------------------
+  7. A NEW QUESTION IN THE QUESTION BANK (section 29)
+---------------------------------------------------------------------
+  Paste inside <div class="qa"> ... </div>, anywhere between the
+  existing <details> blocks:
+
+  <details><summary data-q="46">My new question?</summary>
+  <div class="ans"><p>The answer.</p></div></details>
+
+  data-q="46" is only the number printed in front of the question.
+  Duplicates are harmless — it is a label, not an id.
+
+---------------------------------------------------------------------
+  8. HEADINGS INSIDE A SECTION
+---------------------------------------------------------------------
+  <h3>Sub topic</h3>          bigger, serif-sans heading
+  <h4>Small mono heading</h4> smaller, monospace — good for code topics
+  <hr>                        thin divider line
+
+---------------------------------------------------------------------
+  9. SMALL TAGS / PILLS
+---------------------------------------------------------------------
+  <span class="pill">default</span>       grey
+  <span class="pill p1">important</span>  red
+  <span class="pill p2">Java 21</span>    amber
+  <span class="pill p3">preferred</span>  blue
+
+---------------------------------------------------------------------
+  10. AFTER EDITING
+---------------------------------------------------------------------
+  Just save the file and press F5 / Ctrl+R in the browser.
+  If a section disappears, you almost certainly missed a closing tag
+  ( </div>, </section>, </p> ) — check the block you just pasted.
+  All colours work automatically in both light and dark theme.
+=====================================================================
+-->
+
+<div class="toolbar">
+  <button class="tbtn" id="btn-theme" type="button">Theme</button>
+  <button class="tbtn" id="btn-sync" type="button">Sync: off</button>
+  <button class="tbtn" id="btn-topic" type="button">+ Topic</button>
+  <button class="tbtn primary" id="btn-export" type="button">Save to file</button>
+</div>
+
+<button id="rail-open" type="button" title="Show the index">INDEX &#9654;</button>
+
+<div class="shell">
+
+<!-- =================== TOC =================== -->
+<nav class="rail">
+  <div class="brand"><span>Revision Index</span><button class="rail-toggle" id="rail-close" type="button" title="Minimise the index">&#9664;</button></div>
+  <div class="grp">Cross-Cutting &middot; Phase 4</div>
+  <a href="#s11"><span class="n">11</span>Spring AOP</a>
+  <a href="#s12"><span class="n">12</span>Async, scheduling &amp; events</a>
+  <div class="grp">Interview</div>
+  <a href="#s13"><span class="n">13</span>Most-asked questions</a>
+  <a href="#s14"><span class="n">14</span>What's wrong with this code?</a>
+  <a href="#s15"><span class="n">15</span>Hands-on lab</a>
+  <a href="#s16"><span class="n">16</span>Cheat sheet</a>
+  <div class="grp">My progress</div>
+  <div id="progress" style="padding-left:10px;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted);line-height:1.8"></div>
+</nav>
+
+<!-- =================== MAIN =================== -->
+<main>
+<header class="masthead">
+  <p class="eyebrow">Complete Revision &middot; Spring &amp; Spring Boot &middot; Phase 4</p>
+  <h1>Cross-Cutting Concerns: AOP, Async, Scheduling &amp; Events</h1>
+  <p class="sub">The mechanism the earlier phases kept pointing at, taken apart. Proxies, pointcuts and advice; why an annotation sometimes silently does nothing; then <code>@Async</code> and thread-pool tuning, <code>@Scheduled</code> across replicas, and application events with their transactional phases. One sentence covers most of it: <b>a proxy can only intercept calls that pass through it.</b></p>
+</header>
+
+<div class="legend">
+  <div><span class="sw" style="color:var(--concept)">Blue &mdash; Concept</span>Definition / how it works</div>
+  <div><span class="sw" style="color:var(--safe)">Green &mdash; Do this</span>Correct practice, safe code</div>
+  <div><span class="sw" style="color:var(--danger)">Red &mdash; Trap</span>Bug, gotcha, wrong answer</div>
+  <div><span class="sw" style="color:var(--tip)">Amber &mdash; Asked</span>Actual interview question / tip</div>
+  <div><span class="sw" style="color:var(--deep)">Violet &mdash; Under the hood</span>Framework source / container-level detail</div>
+</div>
+
+<!-- ============================================================ 11 -->
+<section id="s11">
+<h2><span class="num">11</span>Spring AOP</h2><div class="h2rule"></div>
+
+<p class="lead">Phase 2 said "Spring may hand you a proxy instead of the object you wrote" and Phase 3 said "the transaction opens at the AOP layer". This is where that claim gets cashed in &mdash; and where a whole family of silent Spring bugs stops being mysterious and starts being <b>predictable</b>.</p>
+
+<h3>11.1 Why AOP &mdash; cross-cutting concerns</h3>
+<p>Some responsibilities belong to no one class but must happen in many of them: logging, timing, auditing, security checks, retries, transactions, caching. OO decomposition has no home for them, so they get copy-pasted into every method that needs them.</p>
+<pre><code><span class="cm">// one line of business logic, twelve lines of everything else</span>
+<span class="kw">public</span> Order place(OrderRequest request) {
+    <span class="kw">long</span> start = System.nanoTime();                            <span class="cm">// timing</span>
+    log.info(<span class="st">"place() called with {}"</span>, request);             <span class="cm">// logging</span>
+    securityService.check(<span class="st">"ORDER_WRITE"</span>);                      <span class="cm">// security</span>
+    <span class="kw">try</span> {
+        Order order = doPlace(request);                        <span class="cm">// &lt;- the actual work</span>
+        auditService.record(<span class="st">"ORDER_PLACED"</span>, order.getId());    <span class="cm">// auditing</span>
+        <span class="kw">return</span> order;
+    } <span class="kw">catch</span> (Exception e) { log.error(<span class="st">"place() failed"</span>, e); <span class="kw">throw</span> e; }
+    <span class="kw">finally</span> { metrics.record(<span class="st">"place"</span>, System.nanoTime() - start); }
+}</code></pre>
+<p>Three problems that compound: <b>duplication</b> (change the log format, touch forty methods), <b>obscured intent</b> (reviewers hunt for the behaviour), <b>inconsistency</b> (someone forgets the audit call and nobody notices for months). AOP lets you declare the plumbing <b>once</b>, describe <b>where</b> it applies with an expression, and let the framework apply it.</p>
+<div class="box def">
+<span class="lbl">You are already using it</span>
+<p><code>@Transactional</code>, <code>@Cacheable</code>, <code>@Async</code>, <code>@Retryable</code>, <code>@PreAuthorize</code> and <code>@Validated</code> are all Spring AOP. Once you understand the mechanism, "the annotation that silently does nothing" becomes one predictable cause with five symptoms.</p>
+</div>
+
+<h3>11.2 The vocabulary</h3>
+<div class="tw"><table>
+<tr><th>Term</th><th>Meaning in Spring AOP</th></tr>
+<tr><td><b>Join point</b></td><td>A point where advice could apply. In AspectJ this includes field access and constructors; <b>in Spring AOP it is always a method execution on a Spring bean</b></td></tr>
+<tr><td><b>Pointcut</b></td><td>An expression selecting which join points: <code>execution(* com.acme.service.*.*(..))</code></td></tr>
+<tr><td><b>Advice</b></td><td>The code that runs, and when: <code>@Before</code>, <code>@After</code>, <code>@AfterReturning</code>, <code>@AfterThrowing</code>, <code>@Around</code></td></tr>
+<tr><td><b>Aspect</b></td><td>A class combining pointcuts and advice, marked <code>@Aspect</code></td></tr>
+<tr><td><b>Target</b></td><td>The real bean being advised &mdash; your <code>OrderService</code></td></tr>
+<tr><td><b>Proxy</b></td><td>The object Spring actually injects: same type as the target, wrapping it. <b>Callers never see the target</b></td></tr>
+<tr><td><b>Weaving</b></td><td>Linking aspects to targets. <b>Spring does this at runtime</b>, by creating proxies during bean post-processing. AspectJ can weave at compile or load time</td></tr>
+</table></div>
+<div class="box under">
+<span class="lbl">Spring AOP is not AspectJ</span>
+<p>Spring AOP borrows AspectJ's annotations and pointcut syntax but uses its own runtime proxy mechanism. That is why it can only advise <b>public method calls on Spring beans, made from outside the object</b>. Full AspectJ weaves into the bytecode and can advise private methods, fields, constructors and non-Spring objects. Saying this precisely is a strong interview signal.</p>
+</div>
+
+<h3>11.3 @Aspect and @EnableAspectJAutoProxy</h3>
+<pre><code>&lt;dependency&gt;&lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;&lt;artifactId&gt;spring-boot-starter-aop&lt;/artifactId&gt;&lt;/dependency&gt;
+
+@Aspect                       <span class="cm">// marks it as an aspect</span>
+@Component                    <span class="cm">// AND it must be a Spring bean - both are required</span>
+<span class="kw">public class</span> LoggingAspect {
+    @Before(<span class="st">"execution(* com.acme.service.*.*(..))"</span>)
+    <span class="kw">public void</span> logEntry(JoinPoint jp) {
+        log.debug(<span class="st">"-&gt; {}.{}"</span>, jp.getSignature().getDeclaringTypeName(), jp.getSignature().getName());
+    }
+}
+
+spring.aop.auto=<span class="nu">true</span>                   <span class="cm"># default</span>
+spring.aop.proxy-target-class=<span class="nu">true</span>     <span class="cm"># default in Boot - always CGLIB, see 11.7</span></code></pre>
+<div class="box trap">
+<span class="lbl">Both annotations, always</span>
+<p><code>@Aspect</code> alone does nothing &mdash; Spring never sees the class. <code>@Component</code> alone makes it a bean but not an aspect. Forgetting <code>@Component</code> is the most common reason a new aspect "does not fire", and it fails silently.</p>
+</div>
+<div class="box under">
+<span class="lbl">Under the hood</span>
+<p><code>@EnableAspectJAutoProxy</code> registers <code>AnnotationAwareAspectJAutoProxyCreator</code>, a <code>BeanPostProcessor</code> that inspects every bean at <code>postProcessAfterInitialization</code> and wraps the matching ones in a proxy. In Boot, <code>AopAutoConfiguration</code> switches it on when <code>starter-aop</code> is on the classpath. This is the Phase 2 mechanism: proxies are created at <b>stage 8</b> of the bean lifecycle, after initialisation &mdash; which is exactly why <code>@Transactional</code> does not work inside <code>@PostConstruct</code>.</p>
+</div>
+
+<h3>11.4 The five advice types</h3>
+<div class="box def">
+<span class="lbl">Nesting order for one aspect</span>
+<p><code>@Around</code> (before <code>proceed()</code>) &rarr; <code>@Before</code> &rarr; <b>target method</b> &rarr; <code>@AfterReturning</code> <i>or</i> <code>@AfterThrowing</code> &rarr; <code>@After</code> (finally, always) &rarr; <code>@Around</code> (after <code>proceed()</code>). <code>@Around</code> wraps everything and is the only advice that can suppress the call, change arguments or replace the return value.</p>
+</div>
+<pre><code>@Aspect @Component
+<span class="kw">public class</span> DemoAspect {
+    @Pointcut(<span class="st">"execution(* com.acme.service..*(..))"</span>)
+    <span class="kw">public void</span> serviceMethods() { }                                    <span class="cm">// a reusable, named pointcut</span>
+
+    @Before(<span class="st">"serviceMethods()"</span>)                       <span class="kw">public void</span> before(JoinPoint jp) { }
+    @AfterReturning(pointcut = <span class="st">"serviceMethods()"</span>, returning = <span class="st">"result"</span>)
+    <span class="kw">public void</span> afterReturning(JoinPoint jp, Object result) { }
+    @AfterThrowing(pointcut = <span class="st">"serviceMethods()"</span>, throwing = <span class="st">"ex"</span>)
+    <span class="kw">public void</span> afterThrowing(JoinPoint jp, Exception ex) { }
+    @After(<span class="st">"serviceMethods()"</span>)                        <span class="kw">public void</span> after(JoinPoint jp) { }   <span class="cm">// finally</span>
+
+    @Around(<span class="st">"serviceMethods()"</span>)
+    <span class="kw">public</span> Object around(ProceedingJoinPoint pjp) <span class="kw">throws</span> Throwable {
+        <span class="cm">// before</span>
+        <span class="kw">try</span> { Object result = pjp.proceed(); <span class="cm">/* after returning */</span> <span class="kw">return</span> result; }   <span class="cm">// &lt;- calls the target</span>
+        <span class="kw">catch</span> (Throwable t) { <span class="cm">/* after throwing */</span> <span class="kw">throw</span> t; }
+        <span class="kw">finally</span> { <span class="cm">/* after (finally) */</span> }
+    }
+}</code></pre>
+<div class="tw"><table>
+<tr><th>Advice</th><th>Runs</th><th>Can it&hellip;</th></tr>
+<tr><td><code>@Before</code></td><td>Before the method</td><td>Read arguments. <b>Cannot</b> change them or stop the call &mdash; only throwing does that</td></tr>
+<tr><td><code>@AfterReturning</code></td><td>After normal return</td><td>Read the return value. Cannot replace it</td></tr>
+<tr><td><code>@AfterThrowing</code></td><td>After an exception</td><td>Read the exception. Cannot swallow it &mdash; that needs <code>@Around</code></td></tr>
+<tr><td><code>@After</code></td><td>Always, like <code>finally</code></td><td>Clean up. Does not know whether it succeeded</td></tr>
+<tr><td><code>@Around</code></td><td>Wraps the call</td><td><b>Everything.</b> Change arguments, skip the call, replace the return value, swallow or translate exceptions, retry</td></tr>
+</table></div>
+<div class="box win">
+<span class="lbl">Prefer the weakest advice that does the job</span>
+<p><code>@Around</code> can do anything, which also means it can silently break things &mdash; forget <code>proceed()</code> and the target never runs, returning <code>null</code> with no error. If you only need to read arguments, use <code>@Before</code>; the reader then knows behaviour cannot be altered.</p>
+</div>
+
+<h3>11.5 Pointcut expressions</h3>
+<pre><code>execution( <b>public</b>  <b>*</b>  <b>com.acme..service.*Service</b>  <b>.find*</b>  <b>(..)</b> )
+<span class="cm">//         modifier  return  declaring type (.. = pkg and below)  method  args (.. = any)</span>
+
+execution(* *(..))                                      <span class="cm">// every method - do not do this</span>
+execution(<span class="kw">public</span> * com.acme..service.*.*(..))
+execution(* com.acme.service.OrderService.find*(..))
+execution(* *..*Repository.save(..))
+
+<span class="cm">// combine with &amp;&amp; || !</span>
+@Pointcut(<span class="st">"within(com.acme..service..*) &amp;&amp; @annotation(org.springframework.web.bind.annotation.GetMapping)"</span>)
+<span class="kw">public void</span> readOnlyServiceCalls() { }
+@Pointcut(<span class="st">"execution(* com.acme..*(..)) &amp;&amp; !within(com.acme.config..*)"</span>)
+<span class="kw">public void</span> appCodeExceptConfig() { }</code></pre>
+<div class="tw"><table>
+<tr><th>Designator</th><th>Matches</th></tr>
+<tr><td><code>execution(...)</code></td><td>Method executions. The workhorse &mdash; the only one you strictly need</td></tr>
+<tr><td><code>within(com.acme.service..*)</code></td><td>Any method on a type in that package. Cheaper than <code>execution</code>, often clearer</td></tr>
+<tr><td><code>@annotation(com.acme.Audited)</code></td><td>Any method carrying that annotation. <b>The most maintainable option</b> &mdash; moving a class no longer breaks the pointcut</td></tr>
+<tr><td><code>@within(com.acme.Audited)</code></td><td>Any method on a class carrying it</td></tr>
+<tr><td><code>bean(*Service)</code></td><td>Spring-only: match by bean name</td></tr>
+<tr><td><code>args(String, ..)</code></td><td>Match on runtime argument types, and bind them</td></tr>
+<tr><td><code>this(...)</code> / <code>target(...)</code></td><td>Match on the proxy type / the target type</td></tr>
+</table></div>
+<pre><code><span class="cm">// binding arguments into the advice</span>
+@Around(<span class="st">"@annotation(audited)"</span>)                              <span class="cm">// the annotation itself is bound as a parameter</span>
+<span class="kw">public</span> Object audit(ProceedingJoinPoint pjp, Audited audited) <span class="kw">throws</span> Throwable {
+    String action = audited.value();
+    Object result = pjp.proceed();
+    auditService.record(action, result);
+    <span class="kw">return</span> result;
+}
+
+@Before(<span class="st">"execution(* com.acme..*.place(..)) &amp;&amp; args(request, ..)"</span>)   <span class="cm">// bind a specific argument</span>
+<span class="kw">public void</span> beforePlace(OrderRequest request) { log.info(<span class="st">"placing order for {}"</span>, request.customerId()); }</code></pre>
+<div class="box win">
+<span class="lbl">The annotation-driven pointcut is the one to reach for</span>
+<p><code>execution(* com.acme.service..*(..))</code> silently stops matching the day someone renames a package &mdash; no error, just missing behaviour. <code>@annotation(Audited)</code> is explicit at the call site, survives refactoring, and makes the behaviour visible to whoever reads the method later. Package pointcuts are fine for genuinely blanket concerns like timing everything.</p>
+</div>
+
+<h3>11.6 JoinPoint and ProceedingJoinPoint</h3>
+<pre><code>@Around(<span class="st">"@annotation(com.acme.Timed)"</span>)
+<span class="kw">public</span> Object time(ProceedingJoinPoint pjp) <span class="kw">throws</span> Throwable {
+    MethodSignature sig = (MethodSignature) pjp.getSignature();
+    String clazz  = sig.getDeclaringType().getSimpleName();
+    String method = sig.getName();
+    Object[] args = pjp.getArgs();
+    Object target = pjp.getTarget();          <span class="cm">// the REAL bean</span>
+    Object proxy  = pjp.getThis();            <span class="cm">// the proxy</span>
+    Method m      = sig.getMethod();          <span class="cm">// for reading annotations reflectively</span>
+    <span class="kw">long</span> t0 = System.nanoTime();
+    <span class="kw">try</span> { <span class="kw">return</span> pjp.proceed(); }             <span class="cm">// or pjp.proceed(new Object[]{ modifiedArg })</span>
+    <span class="kw">finally</span> { log.info(<span class="st">"{}.{} took {} ms"</span>, clazz, method, (System.nanoTime() - t0) / <span class="nu">1_000_000</span>); }
+}</code></pre>
+<div class="tw"><table>
+<tr><th></th><th><code>JoinPoint</code></th><th><code>ProceedingJoinPoint</code></th></tr>
+<tr><td>Available in</td><td><code>@Before</code>, <code>@After</code>, <code>@AfterReturning</code>, <code>@AfterThrowing</code></td><td><code>@Around</code> only</td></tr>
+<tr><td>Read signature and args</td><td>Yes</td><td>Yes</td></tr>
+<tr><td><code>proceed()</code></td><td>No</td><td><b>Yes</b> &mdash; the whole difference</td></tr>
+<tr><td>Change arguments / skip the call</td><td>No</td><td>Yes &mdash; <code>proceed(Object[])</code> / do not call <code>proceed()</code></td></tr>
+</table></div>
+<div class="box trap">
+<span class="lbl">Three mistakes that produce silent bugs</span>
+<p><b>Forgetting <code>proceed()</code></b> &mdash; the target never runs and the method returns <code>null</code>. <b>Calling it twice</b> &mdash; the method executes twice, which on a payment is memorable. <b>Declaring the return type as <code>void</code></b> &mdash; an <code>@Around</code> must return <code>Object</code>, or the real return value is thrown away.</p>
+</div>
+
+<h3>11.7 JDK dynamic proxy vs CGLIB</h3>
+<div class="tw"><table>
+<tr><th></th><th>JDK dynamic proxy</th><th>CGLIB</th></tr>
+<tr><td>Technique</td><td>Implements the same <b>interfaces</b> (<code>$Proxy17</code>)</td><td>Generates a <b>subclass</b> (<code>OrderService$$SpringCGLIB$$0</code>)</td></tr>
+<tr><td>Requires</td><td>At least one interface</td><td>A non-final class</td></tr>
+<tr><td>Advises</td><td>Interface methods only</td><td>All public and protected non-final methods</td></tr>
+<tr><td>Breaks on</td><td>Calls to methods not on the interface</td><td><code>final</code> classes and <code>final</code> methods</td></tr>
+<tr><td>Spring default</td><td>Only when <code>proxyTargetClass=false</code> and interfaces exist</td><td><b>Always, in Spring Boot</b> &mdash; <code>proxyTargetClass=true</code> since Boot 2.0</td></tr>
+</table></div>
+<pre><code>@EnableAspectJAutoProxy(proxyTargetClass = <span class="kw">true</span>)          <span class="cm">// CGLIB</span>
+@EnableTransactionManagement(proxyTargetClass = <span class="kw">false</span>)   <span class="cm">// JDK, if interfaces exist</span>
+spring.aop.proxy-target-class=<span class="nu">false</span>                       <span class="cm"># or globally</span></code></pre>
+<div class="box ask">
+<span class="lbl">The classic JDK-proxy failure</span>
+<p>A bean implements an interface, so Spring creates a JDK proxy typed as the interface. Code that injects the <b>concrete class</b> then fails at startup with <code>BeanNotOfRequiredTypeException</code>, because the proxy is not an instance of your class. Boot avoids this by defaulting to CGLIB &mdash; which is why you rarely meet it now, and why older tutorials talk about it constantly.</p>
+</div>
+<p><b>What CGLIB cannot advise:</b> <code>final</code> classes and methods (Kotlin classes are final by default &mdash; the <code>all-open</code> plugin exists for this); <code>private</code> methods (not visible to a subclass); <code>static</code> methods (not virtual); and calls from inside the object &mdash; that is 11.8. Since Spring 4.3 CGLIB uses Objenesis to instantiate without calling a constructor, so "needs a no-arg constructor" and "constructor runs twice" are obsolete warnings.</p>
+
+<h3>11.8 The self-invocation problem</h3>
+<div class="box trap">
+<span class="lbl">The single most common Spring bug at mid level</span>
+<p>It produces no error, no warning and no log line &mdash; the annotation simply does nothing. <b>A proxy can only intercept calls that pass through it.</b> <code>this.inner()</code> never leaves the object.</p>
+<pre><code>@Service
+<span class="kw">public class</span> OrderService {
+    <span class="kw">public void</span> processAll(List&lt;Order&gt; orders) {
+        <span class="kw">for</span> (Order order : orders) processOne(order);      <span class="cm">// &lt;- plain Java call on `this`</span>
+    }
+    @Transactional                                          <span class="cm">// NEVER APPLIES when called from processAll()</span>
+    <span class="kw">public void</span> processOne(Order order) { repository.save(order); }
+}</code></pre>
+</div>
+<p><code>processAll()</code> was entered through the proxy, so the proxy did its work for <i>that</i> method. Inside the target, <code>processOne(order)</code> compiles to <code>this.processOne(order)</code> &mdash; an ordinary virtual call on the raw instance. The proxy is not in the call path. The same applies identically to <code>@Async</code> (runs on the caller's thread), <code>@Cacheable</code> (never consults the cache), <code>@Retryable</code>, <code>@PreAuthorize</code> and scoped proxies. <b>One mechanism, not five quirks.</b></p>
+<div class="tw"><table>
+<tr><th>Fix</th><th>Assessment</th></tr>
+<tr><td><b>Move the method to another bean</b></td><td><b>The right answer.</b> The call now crosses a proxy boundary. Usually also improves the design &mdash; the two methods had different responsibilities</td></tr>
+<tr><td>Self-injection with <code>@Lazy</code></td><td>Inject the bean into itself and call <code>self.processOne()</code>. Works, honest, odd to read</td></tr>
+<tr><td><code>AopContext.currentProxy()</code></td><td>Needs <code>exposeProxy = true</code>, couples code to Spring AOP. Avoid</td></tr>
+<tr><td>AspectJ load-time weaving</td><td>No proxy, so self-invocation works. A JVM agent and build complexity. Rarely worth it</td></tr>
+</table></div>
+<pre><code><span class="cm">// the fix that also improves the design</span>
+@Service <span class="kw">public class</span> OrderService {
+    <span class="kw">private final</span> OrderProcessor processor;
+    <span class="kw">public void</span> processAll(List&lt;Order&gt; orders) { orders.forEach(processor::processOne); }   <span class="cm">// crosses the proxy</span>
+}
+@Service <span class="kw">public class</span> OrderProcessor {
+    @Transactional <span class="kw">public void</span> processOne(Order order) { repository.save(order); }
+}
+
+<span class="cm">// self-injection, if you must keep them in one class</span>
+@Service <span class="kw">public class</span> OrderService {
+    <span class="kw">private final</span> OrderService self;
+    <span class="kw">public</span> OrderService(@Lazy OrderService self) { <span class="kw">this</span>.self = self; }
+    <span class="kw">public void</span> processAll(List&lt;Order&gt; orders) { orders.forEach(self::processOne); }        <span class="cm">// through the proxy</span>
+}</code></pre>
+<div class="box ask">
+<span class="lbl">How to spot it in review</span>
+<p>Any <code>@Transactional</code>, <code>@Async</code> or <code>@Cacheable</code> method that is only ever called from within the same class is dead configuration. Search for the method name: if every call site is in the same file, the annotation is doing nothing.</p>
+</div>
+
+<h3>11.9 Aspect ordering</h3>
+<div class="box def">
+<span class="lbl">Lower @Order value = OUTER aspect</span>
+<p>First in, last out. <code>@Order(1) LoggingAspect</code> wraps <code>@Order(2) SecurityAspect</code> wraps <code>@Order(3) TransactionAspect</code> wraps the target. Spring's default order for <code>@Transactional</code> is <code>LOWEST_PRECEDENCE</code>, which already puts it innermost.</p>
+</div>
+<div class="tw"><table>
+<tr><th>Concern</th><th>Should be</th><th>Why</th></tr>
+<tr><td>Logging / tracing</td><td>Outermost</td><td>Records total elapsed time and sees exceptions from every inner aspect</td></tr>
+<tr><td>Security</td><td>Early</td><td>Reject unauthorised calls before doing any work or opening a transaction</td></tr>
+<tr><td>Retry</td><td>Outside the transaction</td><td>Each attempt needs its own transaction. Retrying inside reuses a connection that may already be rollback-only</td></tr>
+<tr><td>Caching</td><td>Outside the transaction</td><td>A cache hit should avoid opening a transaction at all</td></tr>
+<tr><td>Transaction</td><td>Innermost</td><td>So it covers only the business call</td></tr>
+</table></div>
+<div class="box trap">
+<span class="lbl">Ordering within one aspect is not guaranteed</span>
+<p><code>@Order</code> orders aspects. Two <code>@Before</code> advices in the same aspect matching the same method have undefined relative order. If order matters, split them into separate aspect classes.</p>
+</div>
+
+<h3>11.10 Practical aspects</h3>
+<pre><code><span class="cm">// timing and metrics</span>
+@Target(ElementType.METHOD) @Retention(RetentionPolicy.RUNTIME)
+<span class="kw">public</span> @<span class="kw">interface</span> Timed { String value() <span class="kw">default</span> <span class="st">""</span>; }
+
+@Aspect @Component
+<span class="kw">public class</span> TimingAspect {
+    <span class="kw">private final</span> MeterRegistry registry;
+    @Around(<span class="st">"@annotation(timed)"</span>)
+    <span class="kw">public</span> Object time(ProceedingJoinPoint pjp, Timed timed) <span class="kw">throws</span> Throwable {
+        String name = timed.value().isBlank() ? pjp.getSignature().toShortString() : timed.value();
+        Timer.Sample sample = Timer.start(registry);
+        String outcome = <span class="st">"success"</span>;
+        <span class="kw">try</span> { <span class="kw">return</span> pjp.proceed(); }
+        <span class="kw">catch</span> (Throwable t) { outcome = <span class="st">"error"</span>; <span class="kw">throw</span> t; }
+        <span class="kw">finally</span> { sample.stop(registry.timer(<span class="st">"method.duration"</span>, <span class="st">"method"</span>, name, <span class="st">"outcome"</span>, outcome)); }
+    }
+}
+
+<span class="cm">// auditing - record AFTER proceed(), so a rolled-back action is never recorded</span>
+@Around(<span class="st">"@annotation(audited)"</span>)
+<span class="kw">public</span> Object audit(ProceedingJoinPoint pjp, Audited audited) <span class="kw">throws</span> Throwable {
+    String actor = SecurityContextHolder.getContext().getAuthentication().getName();
+    Object result = pjp.proceed();                                  <span class="cm">// let it fail before recording</span>
+    auditRepository.save(<span class="kw">new</span> AuditEntry(actor, audited.value(), Instant.now(), MDC.get(<span class="st">"traceId"</span>), summarise(pjp.getArgs())));
+    <span class="kw">return</span> result;
+}
+
+<span class="cm">// retry - a teaching example, not a production component</span>
+@Around(<span class="st">"@annotation(retryable)"</span>)
+<span class="kw">public</span> Object retry(ProceedingJoinPoint pjp, Retryable retryable) <span class="kw">throws</span> Throwable {
+    <span class="kw">int</span> attempts = <span class="nu">0</span>;
+    <span class="kw">while</span> (<span class="kw">true</span>) {
+        <span class="kw">try</span> { <span class="kw">return</span> pjp.proceed(); }
+        <span class="kw">catch</span> (TransientException e) {
+            <span class="kw">if</span> (++attempts &gt;= retryable.maxAttempts()) <span class="kw">throw</span> e;
+            Thread.sleep(retryable.backoffMs() * (<span class="nu">1L</span> &lt;&lt; (attempts - <span class="nu">1</span>)));    <span class="cm">// exponential</span>
+        }
+    }
+}</code></pre>
+<div class="box win">
+<span class="lbl">Use Spring Retry or Resilience4j instead of writing retry yourself</span>
+<p>Real retry needs jitter (to avoid synchronised retry storms), a circuit breaker (so a dead upstream is not hammered), per-exception classification (do not retry a 400) and metrics. <code>spring-retry</code> gives <code>@Retryable</code> and <code>@Recover</code>; Resilience4j adds circuit breaking, bulkheads and rate limiting. Micrometer already ships <code>@Timed</code> too &mdash; check before writing your own.</p>
+</div>
+<div class="box ask">
+<span class="lbl">What not to use AOP for</span>
+<p><b>Core business logic</b> &mdash; behaviour hidden in an aspect is invisible at the call site. <b>Anything order-dependent across many aspects.</b> <b>Hot paths</b> where a proxy call per invocation is measurable. <b>Things a decorator does more clearly</b> &mdash; AOP earns its keep when the concern is genuinely scattered across many unrelated classes.</p>
+</div>
+</section>
+
+
+<!-- ============================================================ 12 -->
+<section id="s12">
+<h2><span class="num">12</span>Async, scheduling &amp; events</h2><div class="h2rule"></div>
+
+<p class="lead">Work that should not block the request thread, work that runs on a clock, and work that happens because something else did. All three are proxies or ThreadLocal boundaries in disguise, so every AOP rule from section 11 applies.</p>
+
+<h3>12.1 @EnableAsync and @Async</h3>
+<p>Phase 3 ended on a constraint: one container thread per request, held for the whole request, and only about 200 of them. Anything slow the caller does not need to wait for should be moved off that thread. Synchronous: <code>sendEmail()</code> 800 ms + <code>writeAudit()</code> 300 ms &rarr; thread held 1.1 s, 200 threads = 180 req/s ceiling. With <code>@Async</code>: controller responds in ~5 ms, the work runs on <code>taskExecutor-3</code>.</p>
+<pre><code>@Configuration
+@EnableAsync                                    <span class="cm">// required - @Async does nothing without it</span>
+<span class="kw">public class</span> AsyncConfig { }
+
+@Service
+<span class="kw">public class</span> NotificationService {
+    @Async
+    <span class="kw">public void</span> sendWelcomeEmail(User user) { mailClient.send(user.email(), <span class="st">"Welcome"</span>); }   <span class="cm">// fire and forget</span>
+
+    @Async
+    <span class="kw">public</span> CompletableFuture&lt;Report&gt; buildReport(Long id) {                                <span class="cm">// result you can await</span>
+        <span class="kw">return</span> CompletableFuture.completedFuture(reportEngine.build(id));
+    }
+}</code></pre>
+<div class="tw"><table>
+<tr><th>Return type</th><th>Meaning</th></tr>
+<tr><td><code>void</code></td><td>Fire and forget. <b>Exceptions are swallowed</b> unless you register an <code>AsyncUncaughtExceptionHandler</code> (12.3)</td></tr>
+<tr><td><code>CompletableFuture&lt;T&gt;</code></td><td>The modern choice. Composable; exceptions surface on <code>join()</code>/<code>get()</code></td></tr>
+<tr><td><code>Future&lt;T&gt;</code></td><td>Legacy. Blocking <code>get()</code> only</td></tr>
+<tr><td>Anything else</td><td><b>Ignored</b> &mdash; the caller receives <code>null</code> immediately</td></tr>
+</table></div>
+<div class="box trap">
+<span class="lbl">@Async is a proxy, so all the AOP rules apply</span>
+<p>Calling an <code>@Async</code> method <b>from within the same class</b> runs it on the caller's thread; a <code>private</code> or <code>final</code> method cannot be advised; calling it from <code>@PostConstruct</code> happens before the proxy exists. If "async is not async", check the call site first.</p>
+</div>
+<div class="box ask">
+<span class="lbl">The default executor changed in Boot 3.2</span>
+<p>Before, the default was <code>SimpleAsyncTaskExecutor</code>: a <b>new thread per task, never pooled</b> &mdash; a slow-motion resource leak under load. Boot now auto-configures a <code>ThreadPoolTaskExecutor</code> tunable with <code>spring.task.execution.*</code>. Either way, define your own for anything important.</p>
+</div>
+
+<h3>12.2 CompletableFuture with Spring</h3>
+<p>The real value of async is not one background task but running several independent calls <b>in parallel</b> and combining them.</p>
+<pre><code>@Service
+<span class="kw">public class</span> DashboardService {
+    <span class="kw">public</span> DashboardResponse load(Long customerId) {
+        CompletableFuture&lt;List&lt;Order&gt;&gt;   o = orders.findAsync(customerId);     <span class="cm">// ~300 ms</span>
+        CompletableFuture&lt;List&lt;Invoice&gt;&gt; i = invoices.findAsync(customerId);   <span class="cm">// ~250 ms</span>
+        CompletableFuture&lt;Usage&gt;         u = usage.findAsync(customerId);      <span class="cm">// ~400 ms</span>
+        CompletableFuture.allOf(o, i, u).join();                              <span class="cm">// ~400 ms total, not 950</span>
+        <span class="kw">return new</span> DashboardResponse(o.join(), i.join(), u.join());
+    }
+}
+
+future.thenApply(order -&gt; toDto(order))                  <span class="cm">// transform</span>
+      .thenCompose(dto -&gt; enrichAsync(dto))              <span class="cm">// chain another async call</span>
+      .thenCombine(otherFuture, (a, b) -&gt; merge(a, b))   <span class="cm">// combine two</span>
+      .orTimeout(<span class="nu">2</span>, TimeUnit.SECONDS)                     <span class="cm">// fail if too slow</span>
+      .exceptionally(ex -&gt; DashboardResponse.empty())    <span class="cm">// fall back</span>
+      .whenComplete((r, ex) -&gt; log.info(<span class="st">"done"</span>));         <span class="cm">// side effect either way</span></code></pre>
+<div class="box trap">
+<span class="lbl">Exceptions are wrapped &middot; the request context does not follow</span>
+<p>Anything thrown inside a task surfaces from <code>join()</code> as a <code>CompletionException</code> with the real cause nested &mdash; unwrap with <code>getCause()</code> or your <code>catch (BusinessException e)</code> never matches. And async tasks run on a different thread, so ThreadLocal state is gone: the SLF4J <b>MDC is empty</b> (your correlation id from Phase 3 disappears), the <code>SecurityContext</code> is empty, no active transaction or request scope. Fix the first two with a <code>TaskDecorator</code> and <code>DelegatingSecurityContextAsyncTaskExecutor</code>.</p>
+</div>
+
+<h3>12.3 Custom executors and thread pool tuning</h3>
+<pre><code>@Configuration @EnableAsync
+<span class="kw">public class</span> AsyncConfig <span class="kw">implements</span> AsyncConfigurer {
+    @Bean(<span class="st">"taskExecutor"</span>)                                     <span class="cm">// this NAME is the @Async default</span>
+    <span class="kw">public</span> Executor taskExecutor() {
+        ThreadPoolTaskExecutor ex = <span class="kw">new</span> ThreadPoolTaskExecutor();
+        ex.setCorePoolSize(<span class="nu">8</span>);
+        ex.setMaxPoolSize(<span class="nu">32</span>);
+        ex.setQueueCapacity(<span class="nu">200</span>);
+        ex.setKeepAliveSeconds(<span class="nu">60</span>);
+        ex.setThreadNamePrefix(<span class="st">"app-async-"</span>);                  <span class="cm">// shows up in every stack trace</span>
+        ex.setRejectedExecutionHandler(<span class="kw">new</span> ThreadPoolExecutor.CallerRunsPolicy());
+        ex.setWaitForTasksToCompleteOnShutdown(<span class="kw">true</span>);
+        ex.setAwaitTerminationSeconds(<span class="nu">30</span>);
+        ex.setTaskDecorator(<span class="kw">new</span> ContextCopyingDecorator());
+        ex.initialize();
+        <span class="kw">return</span> ex;
+    }
+    @Override <span class="kw">public</span> AsyncUncaughtExceptionHandler getAsyncUncaughtExceptionHandler() {
+        <span class="kw">return</span> (ex, method, params) -&gt; log.error(<span class="st">"async {} failed"</span>, method.getName(), ex);   <span class="cm">// void methods</span>
+    }
+}</code></pre>
+<div class="box under">
+<span class="lbl">Under the hood: how the pool grows &mdash; the queue fills BEFORE new threads are created</span>
+<p>(1) Fewer than <code>corePoolSize</code> threads exist &rarr; a <b>new thread</b> is created, even if others are idle. (2) Core threads exist &rarr; the task is <b>queued</b>. (3) Queue is full &rarr; <i>now</i> new threads up to <code>maxPoolSize</code>. (4) Max reached and queue full &rarr; the rejection policy fires. (5) Idle non-core threads die after <code>keepAliveSeconds</code>.</p>
+</div>
+<div class="box trap">
+<span class="lbl">The tuning mistake almost everyone makes</span>
+<p><code>core=5, max=100, queue=10000</code> looks generous but means the pool <b>never grows past 5</b>. Tasks pile into the queue for hours; <code>maxPoolSize</code> is only consulted once the queue is full. If you want elasticity, keep the queue small &mdash; and <b>never unbounded</b>, which turns backpressure into an <code>OutOfMemoryError</code>.</p>
+</div>
+<div class="tw"><table>
+<tr><th>Setting</th><th>Guidance</th></tr>
+<tr><td><code>corePoolSize</code></td><td>Concurrent tasks at steady state. IO-bound: can far exceed CPU count; CPU-bound: near it</td></tr>
+<tr><td><code>maxPoolSize</code></td><td>The ceiling. Only reachable once the queue is full</td></tr>
+<tr><td><code>queueCapacity</code></td><td><b>Never unbounded</b></td></tr>
+<tr><td><code>RejectedExecutionHandler</code></td><td><code>AbortPolicy</code> (default) throws; <code>CallerRunsPolicy</code> makes the submitter run the task &mdash; crude but effective backpressure</td></tr>
+<tr><td><code>threadNamePrefix</code></td><td>Costs nothing, pays for itself the first time you read a thread dump</td></tr>
+<tr><td>Shutdown</td><td><code>waitForTasksToCompleteOnShutdown</code> + timeout, so a rolling deploy does not kill in-flight work</td></tr>
+</table></div>
+<pre><code><span class="cm">// carrying context across the thread boundary</span>
+<span class="kw">public class</span> ContextCopyingDecorator <span class="kw">implements</span> TaskDecorator {
+    @Override <span class="kw">public</span> Runnable decorate(Runnable runnable) {
+        Map&lt;String, String&gt; mdc = MDC.getCopyOfContextMap();               <span class="cm">// captured on the CALLER</span>
+        RequestAttributes attrs = RequestContextHolder.getRequestAttributes();
+        <span class="kw">return</span> () -&gt; {                                                      <span class="cm">// runs on the WORKER</span>
+            <span class="kw">try</span> {
+                <span class="kw">if</span> (mdc != <span class="kw">null</span>) MDC.setContextMap(mdc);
+                <span class="kw">if</span> (attrs != <span class="kw">null</span>) RequestContextHolder.setRequestAttributes(attrs);
+                runnable.run();
+            } <span class="kw">finally</span> { MDC.clear(); RequestContextHolder.resetRequestAttributes(); }
+        };
+    }
+}
+
+spring.task.execution.pool.core-size=<span class="nu">8</span>
+spring.task.execution.pool.max-size=<span class="nu">32</span>
+spring.task.execution.pool.queue-capacity=<span class="nu">200</span>
+spring.task.execution.thread-name-prefix=app-async-
+spring.task.scheduling.pool.size=<span class="nu">4</span>            <span class="cm"># see 12.4 - the default of 1 is a real trap</span></code></pre>
+<div class="box win">
+<span class="lbl">Several pools, on purpose</span>
+<p>One shared executor means a slow email provider can starve report generation. Declare separate named executors and select one per method with <code>@Async("emailExecutor")</code>. This is the <b>bulkhead</b> pattern inside a single process &mdash; in fintech, the payment-gateway pool and the notification pool must never share threads.</p>
+</div>
+
+<h3>12.4 @EnableScheduling and @Scheduled</h3>
+<pre><code>@Configuration @EnableScheduling <span class="kw">public class</span> SchedulingConfig { }
+
+@Component
+<span class="kw">public class</span> ReportJobs {
+    @Scheduled(fixedDelay = <span class="nu">60_000</span>)                                  <span class="cm">// 60 s after the previous FINISH</span>
+    <span class="kw">public void</span> pollQueue() { }
+    @Scheduled(fixedRate = <span class="nu">30_000</span>, initialDelay = <span class="nu">10_000</span>)             <span class="cm">// every 30 s from each START</span>
+    <span class="kw">public void</span> heartbeat() { }
+    @Scheduled(cron = <span class="st">"0 0 2 * * *"</span>, zone = <span class="st">"Asia/Kolkata"</span>)           <span class="cm">// 02:00 daily, IST</span>
+    <span class="kw">public void</span> nightlyReconcile() { }
+    @Scheduled(fixedDelayString = <span class="st">"${jobs.poll-delay:60000}"</span>)        <span class="cm">// configurable</span>
+    <span class="kw">public void</span> configurablePoll() { }
+}
+
+<span class="cm">// cron - SIX fields, seconds first</span>
+0 0 2 * * *            <span class="cm"># 02:00 every day</span>
+0 */15 * * * *         <span class="cm"># every 15 minutes</span>
+0 0 9-17 * * MON-FRI   <span class="cm"># hourly, 09:00-17:00, weekdays</span>
+0 0 0 1 * *            <span class="cm"># midnight on the 1st of each month</span></code></pre>
+<div class="tw"><table>
+<tr><th>Attribute</th><th>Behaviour</th></tr>
+<tr><td><code>fixedDelay</code></td><td>Wait N ms after the previous run <b>finishes</b>. Never overlaps. <b>The safe default</b></td></tr>
+<tr><td><code>fixedRate</code></td><td>Every N ms from the previous <b>start</b>. A slow run means the next queues immediately; on one thread they serialise and drift</td></tr>
+<tr><td><code>cron</code></td><td>Six fields: second, minute, hour, day-of-month, month, day-of-week. The <b>leading seconds field</b> is not in Unix cron</td></tr>
+<tr><td><code>zone</code></td><td>Defaults to the server's &mdash; exactly the implicit dependency that breaks in a container. Always set it</td></tr>
+<tr><td><code>initialDelay</code></td><td>Avoid every replica starting work at once</td></tr>
+</table></div>
+<div class="box trap">
+<span class="lbl">The default scheduler pool size is ONE</span>
+<p>Every <code>@Scheduled</code> method in the application shares a single thread. One slow job blocks every other job, silently &mdash; the symptom is jobs "not running", not an error. Set <code>spring.task.scheduling.pool.size</code> to at least the number of scheduled methods.</p>
+</div>
+
+<h3>12.5 Scheduling across multiple instances</h3>
+<p>The problem nobody meets in development and everybody meets in production: deploy three replicas and every one runs the job. The customer gets three invoices, or three duplicate rows. <code>@Scheduled</code> is <b>per-JVM</b>.</p>
+<div class="tw"><table>
+<tr><th>Approach</th><th>Assessment</th></tr>
+<tr><td><b>ShedLock</b></td><td><b>The usual answer.</b> Takes a lock in a shared store (JDBC, Redis, Mongo) before running. One annotation, no new infrastructure</td></tr>
+<tr><td>Quartz with clustering</td><td>Persistent jobs, misfire handling, clustering. Right for dynamic schedules or job history; heavy otherwise</td></tr>
+<tr><td>An external trigger</td><td>A Kubernetes <code>CronJob</code> calls one endpoint. Moves scheduling out of the app &mdash; often the cleanest</td></tr>
+<tr><td>A leader-election profile</td><td>Scheduler on one dedicated replica. Simple, but a single point of failure</td></tr>
+<tr><td>DB row locking by hand</td><td><code>SELECT &hellip; FOR UPDATE SKIP LOCKED</code> on a jobs table. Essentially what ShedLock does for you</td></tr>
+</table></div>
+<pre><code>@Scheduled(cron = <span class="st">"0 0 2 * * *"</span>)
+@SchedulerLock(name = <span class="st">"nightlyReconcile"</span>,
+               lockAtLeastFor = <span class="st">"PT5M"</span>,        <span class="cm">// hold it even if the job is fast (clock skew between pods)</span>
+               lockAtMostFor  = <span class="st">"PT30M"</span>)       <span class="cm">// released if the pod dies mid-run</span>
+<span class="kw">public void</span> nightlyReconcile() {
+    LockAssert.assertLocked();                  <span class="cm">// fails fast if misconfigured</span>
+}</code></pre>
+<div class="box trap">
+<span class="lbl">lockAtMostFor is the important one &middot; make the job idempotent anyway</span>
+<p>If a pod is killed mid-job the lock row remains; without a maximum the job <b>never runs again</b> &mdash; invisible until someone notices missing data days later. Set it comfortably above the worst realistic runtime. And locks reduce duplicate runs; they do not eliminate them (a lock can expire while a slow job is still working), so the job itself must be idempotent.</p>
+</div>
+
+<h3>12.6 ApplicationEvent and ApplicationEventPublisher</h3>
+<div class="box def">
+<span class="lbl">Core concept</span>
+<p>Spring's in-process publish/subscribe. One bean announces that something happened without knowing who cares, which decouples a service from the growing list of side effects attached to it. Before: <code>OrderService</code> called mail, audit and search directly and grew a dependency per side effect. After: a new side effect is a new listener class, no change to <code>OrderService</code>.</p>
+</div>
+<pre><code><span class="cm">// the event - a plain record since Spring 4.2, no base class needed</span>
+<span class="kw">public record</span> OrderPlacedEvent(Long orderId, Long customerId, BigDecimal total) { }
+
+@Service
+<span class="kw">public class</span> OrderService {
+    <span class="kw">private final</span> ApplicationEventPublisher events;
+    @Transactional
+    <span class="kw">public</span> Order place(OrderRequest request) {
+        Order order = repository.save(toOrder(request));
+        events.publishEvent(<span class="kw">new</span> OrderPlacedEvent(order.getId(), order.getCustomerId(), order.getTotal()));
+        <span class="kw">return</span> order;
+    }
+}</code></pre>
+<div class="box under">
+<span class="lbl">Under the hood: publishing is SYNCHRONOUS by default</span>
+<p><code>ApplicationEventMulticaster</code> invokes every listener on the <b>same thread, in the same transaction, one after another</b>. A slow listener slows the publisher's request. A listener that throws propagates back to the publisher and can roll the whole thing back &mdash; sometimes what you want, often a nasty surprise.</p>
+</div>
+<div class="box trap">
+<span class="lbl">Know the limits</span>
+<p>In-process and in-memory. If the JVM dies between publish and listener, the event is gone: no persistence, no retry, no delivery guarantee. It decouples classes inside one application; it is <b>not a substitute for Kafka or RabbitMQ</b> across services, and using it as one is a real architectural mistake.</p>
+</div>
+
+<h3>12.7 @EventListener and @TransactionalEventListener</h3>
+<pre><code>@Component
+<span class="kw">public class</span> OrderNotificationListener {
+    @EventListener
+    <span class="kw">public void</span> onOrderPlaced(OrderPlacedEvent event) { mailService.sendConfirmation(event.orderId()); }
+
+    @EventListener(condition = <span class="st">"#event.total &gt; 10000"</span>)                    <span class="cm">// SpEL filter</span>
+    <span class="kw">public void</span> onLargeOrder(OrderPlacedEvent event) { riskService.flag(event.orderId()); }
+
+    @EventListener({ OrderPlacedEvent.<span class="kw">class</span>, OrderCancelledEvent.<span class="kw">class</span> })
+    <span class="kw">public void</span> onAny(Object event) { }
+
+    @EventListener @Order(<span class="nu">1</span>)                                                <span class="cm">// listener ordering</span>
+    <span class="kw">public void</span> first(OrderPlacedEvent event) { }
+}</code></pre>
+<p>A listener that <b>returns a value</b> publishes that value as a further event &mdash; occasionally elegant, more often a surprise. Return <code>void</code> unless you mean it.</p>
+<div class="box trap">
+<span class="lbl">The transactional problem</span>
+<p>A plain <code>@EventListener</code> runs <b>inside the publisher's transaction</b>. The confirmation email above is sent before the commit &mdash; if the commit then fails, the customer has been told about an order that does not exist. In fintech: a "payment received" SMS for a payment that rolled back.</p>
+</div>
+<div class="box def">
+<span class="lbl">@TransactionalEventListener phases</span>
+<p><code>BEFORE_COMMIT</code> still inside the transaction, can still cause a rollback &middot; <code>AFTER_COMMIT</code> <b>default</b>, the safe place to notify anything outside the database &middot; <code>AFTER_ROLLBACK</code> only on failure &middot; <code>AFTER_COMPLETION</code> either way.</p>
+</div>
+<pre><code>@TransactionalEventListener                                       <span class="cm">// phase = AFTER_COMMIT by default</span>
+<span class="kw">public void</span> onOrderPlaced(OrderPlacedEvent event) { mailService.sendConfirmation(event.orderId()); }  <span class="cm">// only if it really committed</span>
+
+@TransactionalEventListener(phase = TransactionPhase.AFTER_ROLLBACK)
+<span class="kw">public void</span> onFailure(OrderPlacedEvent event) { metrics.increment(<span class="st">"order.rollback"</span>); }
+
+@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
+@Transactional(propagation = Propagation.REQUIRES_NEW)             <span class="cm">// needed to WRITE - see the trap</span>
+<span class="kw">public void</span> writeAuditRow(OrderPlacedEvent event) { auditRepository.save(<span class="kw">new</span> AuditEntry(event)); }</code></pre>
+<div class="box trap">
+<span class="lbl">Two things that catch people out</span>
+<p><b>Writing to the database in AFTER_COMMIT silently does nothing</b> &mdash; the transaction has completed, so the write joins no transaction and is never flushed. Add <code>@Transactional(propagation = REQUIRES_NEW)</code>. And if there is <b>no transaction at all</b>, a <code>@TransactionalEventListener</code> does not fire &mdash; set <code>fallbackExecution = true</code> if you want it to run anyway.</p>
+</div>
+
+<h3>12.8 Async events</h3>
+<pre><code>@Component
+<span class="kw">public class</span> SearchIndexListener {
+    @Async
+    @TransactionalEventListener                      <span class="cm">// committed AND off the request thread</span>
+    <span class="kw">public void</span> reindex(OrderPlacedEvent event) { searchClient.index(event.orderId()); }
+}</code></pre>
+<div class="tw"><table>
+<tr><th></th><th>Synchronous listener</th><th><code>@Async</code> listener</th></tr>
+<tr><td>Thread</td><td>The publisher's</td><td>An executor thread</td></tr>
+<tr><td>Transaction</td><td>Joins the publisher's</td><td><b>None</b> &mdash; a new one is needed to write</td></tr>
+<tr><td>Exception</td><td>Propagates to the publisher, can force a rollback</td><td><b>Swallowed</b> unless an <code>AsyncUncaughtExceptionHandler</code> is registered</td></tr>
+<tr><td>MDC / SecurityContext</td><td>Present</td><td><b>Empty</b> without a <code>TaskDecorator</code></td></tr>
+<tr><td>Ordering</td><td><code>@Order</code> respected</td><td>No guarantee</td></tr>
+<tr><td>Publisher blocked</td><td>Yes, until every listener finishes</td><td>No</td></tr>
+</table></div>
+<div class="box trap">
+<span class="lbl">The failure mode to design for</span>
+<p>An async listener that throws disappears: no rollback, no propagation, by default no log line. Always register an <code>AsyncUncaughtExceptionHandler</code>, and for anything that matters record the intent durably. Once you need "this side effect <b>must</b> happen", in-memory events are the wrong tool: write an <b>outbox row</b> in the same transaction and have a poller publish it to a real broker (Phase 5, 14.9).</p>
+</div>
+
+<h3>12.9 Built-in Spring Boot events</h3>
+<div class="tw"><table>
+<tr><th>Event</th><th>When</th></tr>
+<tr><td><code>ApplicationStartingEvent</code></td><td>Very early, before the <code>Environment</code>. Listeners must be registered in <code>spring.factories</code>, not as beans</td></tr>
+<tr><td><code>ApplicationEnvironmentPreparedEvent</code></td><td>Environment ready, context not yet created. Programmatic property sources</td></tr>
+<tr><td><code>ApplicationContextInitializedEvent</code></td><td>Context created, definitions not yet loaded</td></tr>
+<tr><td><code>ApplicationPreparedEvent</code></td><td>Definitions loaded, beans not instantiated</td></tr>
+<tr><td><code>ContextRefreshedEvent</code></td><td>All beans created and wired. Fires again on a manual refresh</td></tr>
+<tr><td><code>ApplicationReadyEvent</code></td><td><b>The one you want.</b> Server listening, runners executed. Safe to do real work</td></tr>
+<tr><td><code>ApplicationFailedEvent</code></td><td>Startup failed</td></tr>
+<tr><td><code>ContextClosedEvent</code></td><td>Shutdown beginning, before destroy callbacks</td></tr>
+</table></div>
+<pre><code>@Component
+<span class="kw">public class</span> StartupTasks {
+    @EventListener(ApplicationReadyEvent.<span class="kw">class</span>)
+    <span class="kw">public void</span> onReady() { cacheWarmer.warm(); registry.markHealthy(); }    <span class="cm">// proxies exist -&gt; @Transactional works here</span>
+
+    @EventListener(ContextClosedEvent.<span class="kw">class</span>)
+    <span class="kw">public void</span> onShutdown() { registry.deregister(); }                     <span class="cm">// leave the load balancer before dying</span>
+}</code></pre>
+<div class="box ask">
+<span class="lbl">Why ApplicationReadyEvent and not @PostConstruct</span>
+<p>Proxies are created after initialisation, so a <code>@Transactional</code> or <code>@Async</code> call from <code>@PostConstruct</code> runs on the raw object and silently does nothing. <code>ApplicationReadyEvent</code> fires once the whole context is built, every proxy in place. <code>ApplicationRunner</code>/<code>CommandLineRunner</code> run just before it: use a runner when the work is part of starting up and should delay readiness; use the event when it is a reaction to being ready. <code>@PostConstruct</code> is still right for cheap, self-contained initialisation of the bean's own state.</p>
+</div>
+</section>
+
+
+<!-- ============================================================ 13 -->
+<section id="s13">
+<h2><span class="num">13</span>Most-asked questions</h2><div class="h2rule"></div>
+
+<p class="lead">The PDF's 25 for a mid-level role plus 7 more. This phase produces a particular kind of question: not "what does this annotation do" but <b>"it isn't working &mdash; why?"</b> Nearly every answer comes back to the same fact, which is the point. <span class="pill p1">every round</span> <span class="pill p2">common</span> <span class="pill p3">senior</span></p>
+
+<h3>AOP</h3>
+<div class="qa">
+<details><summary data-q="1">What problem does AOP solve, and where are you already using it? <span class="pill p1">every round</span></summary><div class="ans"><p>Cross-cutting concerns: logging, timing, auditing, security, retries, transactions, caching. They belong to no single class but must happen in many, so without AOP they are copy-pasted into every method &mdash; duplicated, easy to forget, and burying the business logic. The point worth making: this is not exotic. <code>@Transactional</code>, <code>@Cacheable</code>, <code>@Async</code>, <code>@Retryable</code>, <code>@PreAuthorize</code>, <code>@Validated</code> are all Spring AOP. If you use Spring, you use AOP; the only question is whether you understand the mechanism when it misbehaves.</p></div></details>
+<details><summary data-q="2">Define aspect, join point, pointcut, advice, target and weaving. <span class="pill p1">every round</span></summary><div class="ans"><p>A <b>join point</b> is where advice could apply &mdash; in Spring AOP always a method execution on a bean. A <b>pointcut</b> is an expression selecting which join points. <b>Advice</b> is the code that runs, and when. An <b>aspect</b> combines pointcuts and advice. The <b>target</b> is your real bean; the <b>proxy</b> is the wrapper Spring injects. <b>Weaving</b> links them &mdash; Spring does it at runtime by creating proxies during bean post-processing. Add: Spring AOP borrows AspectJ's syntax but uses its own proxy mechanism, which is why it only advises public method calls on beans made from outside the object.</p></div></details>
+<details><summary data-q="3">Name the advice types and their order. <span class="pill p1">every round</span></summary><div class="ans"><p><code>@Around</code> wraps everything. Inside it: <code>@Before</code>, the target, then <code>@AfterReturning</code> or <code>@AfterThrowing</code>, then <code>@After</code> like a <code>finally</code>, then the rest of <code>@Around</code> after <code>proceed()</code>. Only <code>@Around</code> can change arguments, suppress the call, replace the return value or swallow an exception &mdash; it alone receives a <code>ProceedingJoinPoint</code>. Use the weakest advice that does the job.</p></div></details>
+<details><summary data-q="4">How would you write a pointcut, and which style do you prefer? <span class="pill p2">common</span></summary><div class="ans"><p><code>execution(* com.acme.service..*(..))</code> is the workhorse: modifier, return type, declaring type, method name, arguments, with <code>*</code> and <code>..</code> wildcards. But I prefer <code>@annotation(com.acme.Audited)</code>: a package pointcut silently stops matching when someone renames a package; an annotation is explicit at the call site, survives refactoring, and is visible to whoever reads the method next. Package pointcuts are fine for blanket concerns like timing every service call.</p></div></details>
+<details><summary data-q="5">JDK dynamic proxy vs CGLIB &mdash; which does Spring Boot use? <span class="pill p1">every round</span></summary><div class="ans"><p>A JDK proxy implements the target's <b>interfaces</b>: needs at least one, advises interface methods only. CGLIB generates a <b>subclass</b>: no interface needed, but class and methods must not be <code>final</code>. Boot defaults to CGLIB (<code>proxyTargetClass=true</code> since 2.0), which avoids the classic failure where a bean has an interface, Spring proxies it as the interface, and code injecting the concrete class fails at startup with <code>BeanNotOfRequiredTypeException</code>. Neither can advise private or static methods, and neither intercepts a call the object makes to itself.</p></div></details>
+<details><summary data-q="6">Your @Transactional method isn't opening a transaction. Why? <span class="pill p1">every round</span></summary><div class="ans"><p>Most likely <b>self-invocation</b>: another method in the same class calls it, the call compiles to <code>this.method()</code> and never leaves the object, so the proxy is not in the path. No error, no warning. Other candidates: the method is <code>private</code>, <code>final</code> or <code>static</code>; the class is not a Spring bean; it is called from <code>@PostConstruct</code>, before the proxy exists. Fix: move the method to a separate bean so the call crosses a proxy boundary &mdash; usually better design too. Self-injection with <code>@Lazy</code> if they genuinely belong together. Prove it with <code>logging.level.org.springframework.transaction.interceptor=TRACE</code>.</p></div></details>
+<details><summary data-q="7">How do you spot a self-invocation bug in code review? <span class="pill p2">common</span></summary><div class="ans"><p>Any <code>@Transactional</code>, <code>@Async</code>, <code>@Cacheable</code> or <code>@Retryable</code> method whose only call sites are in the same file. If nothing outside the class calls it, the annotation is dead configuration. Worth saying it is one mechanism, not four quirks: all of those are proxies applied in <code>postProcessAfterInitialization</code>, so they all fail the same way.</p></div></details>
+<details><summary data-q="8">Several aspects match the same method. What controls the order, and what order do you want? <span class="pill p3">senior</span></summary><div class="ans"><p><code>@Order</code> on the aspect class; lower value = outer, first in, last out. Logging outermost (total time, sees every exception); security early (reject before any work or transaction); retry outside the transaction (each attempt needs its own; retrying inside reuses a connection that may be rollback-only); caching outside the transaction (a hit should not open one); transaction innermost. Caveat: <code>@Order</code> orders aspects, not advices within one aspect &mdash; two <code>@Before</code>s in one class have undefined order.</p></div></details>
+<details><summary data-q="9">What can Spring AOP not do? <span class="pill p2">common</span></summary><div class="ans"><p>Advise <code>private</code>, <code>static</code> or <code>final</code> methods, <code>final</code> classes, non-bean objects, field access, constructors, or any call an object makes to itself. All follow from one fact: Spring AOP is runtime proxying. Full AspectJ weaves bytecode at compile or load time and has none of those limits, at the cost of an agent or build weaver &mdash; almost never worth it; the usual answer is to restructure the code.</p></div></details>
+<details><summary data-q="10">How would you implement method-level timing with AOP? <span class="pill p2">common</span></summary><div class="ans"><p>A custom <code>@Timed</code> annotation, an <code>@Around</code> aspect on <code>@annotation(timed)</code>, and Micrometer's <code>Timer.Sample</code> around <code>proceed()</code> in a try/finally, tagging outcome as success or error. Three details that show you have done it: annotation-based pointcut so refactoring cannot silently disable it; stop in a <code>finally</code> so failed calls are measured; and Micrometer already ships <code>@Timed</code>, so check before writing your own.</p></div></details>
+<details><summary data-q="11">Would you implement retry with a custom aspect? <span class="pill p3">senior</span></summary><div class="ans"><p>I can, and it is a good exercise, but I would not ship it. Production retry needs jitter (no synchronised retry storms), a circuit breaker (do not hammer a dead upstream), per-exception classification (never retry a 400), and metrics. Use <code>spring-retry</code> for <code>@Retryable</code>/<code>@Recover</code>, or Resilience4j when you also want circuit breaking, bulkheads and rate limiting. And place retry <b>outside</b> the transaction so each attempt gets its own.</p></div></details>
+<details><summary data-q="12">When would you not use AOP? <span class="pill p2">common</span></summary><div class="ans"><p>For core business logic (invisible at the call site, painful to debug). When correctness depends on five aspects nesting exactly right. On hot paths where the proxy indirection is measurable. When a plain decorator would be clearer, which is often true with two or three classes. AOP earns its keep when the concern is genuinely scattered across many unrelated classes and orthogonal to what they do.</p></div></details>
+<details><summary data-q="13">What does @Transactional look like as an aspect, and why does @PostConstruct break it? <span class="pill p3">senior</span></summary><div class="ans"><p><code>TransactionInterceptor</code> is an <code>@Around</code>-style <code>MethodInterceptor</code> registered by <code>@EnableTransactionManagement</code> and applied by the same auto-proxy creator; its pointcut is "has <code>@Transactional</code> on the method or class". Proxies are created at <code>postProcessAfterInitialization</code>, which runs <i>after</i> <code>@PostConstruct</code>. So inside <code>@PostConstruct</code> the field <code>this</code> is the raw target and any annotated call is plain Java. The correct home for startup work that needs proxies is <code>ApplicationReadyEvent</code> or a runner.</p></div></details>
+</div>
+
+<h3>Async</h3>
+<div class="qa">
+<details><summary data-q="14">What does @Async actually do, and what has to be true for it to work? <span class="pill p1">every round</span></summary><div class="ans"><p>The proxy submits the call to a <code>TaskExecutor</code> and returns immediately, releasing the caller's thread. Requirements: <code>@EnableAsync</code> somewhere; the method public and called from outside the class; return type <code>void</code>, <code>Future</code> or <code>CompletableFuture</code> &mdash; anything else is ignored and the caller gets <code>null</code>. It is a proxy, so every AOP limitation applies. "My async method isn't async" is almost always self-invocation.</p></div></details>
+<details><summary data-q="15">What happens to an exception thrown inside an @Async void method? <span class="pill p2">common</span></summary><div class="ans"><p>It is <b>swallowed</b>. No caller waits on a result, so by default nothing logs it and the work silently did not happen. Fix: implement <code>AsyncConfigurer</code> and return an <code>AsyncUncaughtExceptionHandler</code>. If the method returns <code>CompletableFuture</code>, the exception surfaces from <code>join()</code> wrapped in a <code>CompletionException</code> &mdash; unwrap with <code>getCause()</code> before catching your own type.</p></div></details>
+<details><summary data-q="16">How does a ThreadPoolTaskExecutor decide whether to queue a task or create a thread? <span class="pill p1">every round</span></summary><div class="ans"><p>Below <code>corePoolSize</code> it creates a new thread even if others are idle. Once core threads exist, tasks go to the <b>queue</b>. Only when the queue is <b>full</b> does it create more, up to <code>maxPoolSize</code>. Beyond that the rejection policy fires. The consequence people get wrong: <code>core=5, max=100, queue=10000</code> never grows past 5. Keep the queue small for elasticity, and never unbounded &mdash; that turns backpressure into an <code>OutOfMemoryError</code>.</p></div></details>
+<details><summary data-q="17">Your correlation ID disappears inside an @Async method. Why, and how do you fix it? <span class="pill p2">common</span></summary><div class="ans"><p>The MDC is a <code>ThreadLocal</code> and the task runs on a different thread, so it starts empty; same for the <code>SecurityContext</code>, request scope and any active transaction. Fix with a <code>TaskDecorator</code>: capture <code>MDC.getCopyOfContextMap()</code> on the submitting thread, restore it inside the <code>Runnable</code>, clear it in a <code>finally</code> so the pooled thread does not leak it into the next task. For security, <code>DelegatingSecurityContextAsyncTaskExecutor</code>.</p></div></details>
+<details><summary data-q="18">A colleague says every service method should be @Async so nothing blocks. What do you say? <span class="pill p3">senior</span></summary><div class="ans"><p>It moves the blocking rather than removing it &mdash; the work still occupies a thread, just from a different pool, and if that pool is smaller or its queue unbounded you have made things worse. <code>@Async</code> is right when the caller genuinely does not need the result (emails, audit writes, index updates) and for parallelising independent calls with <code>allOf</code>. As a blanket policy you lose request context, swallow exceptions, break stack traces, and attach a pool-sizing question to every method. If the real problem is thread exhaustion under IO-bound load, the honest answers are virtual threads (<code>spring.threads.virtual.enabled</code> on Java 21) or WebFlux.</p></div></details>
+<details><summary data-q="19">Does @Async still matter with virtual threads? <span class="pill p3">senior</span></summary><div class="ans"><p>Less, for the "free the container thread" motive: with <code>spring.threads.virtual.enabled=true</code> a blocking request thread is cheap, so you no longer offload just to release it. It still matters for fire-and-forget (the caller returns before the work finishes) and for fan-out parallelism. Two cautions: Boot's virtual-thread mode also makes the default <code>@Async</code> executor and scheduler use virtual threads, so bulkheads by pool size stop meaning much; and <code>synchronized</code> blocks pin the carrier before Java 24, so an <code>@Async</code> method holding a lock around IO can still stall.</p></div></details>
+</div>
+
+<h3>Scheduling</h3>
+<div class="qa">
+<details><summary data-q="20">fixedRate vs fixedDelay vs cron? <span class="pill p1">every round</span></summary><div class="ans"><p><code>fixedDelay</code> waits N ms after the previous run <b>finishes</b>: never overlaps, the safe default. <code>fixedRate</code> triggers every N ms from the previous <b>start</b>: if a run takes longer than N the next is already due, and on one thread they serialise and drift. <code>cron</code> is wall-clock with six fields &mdash; note the leading seconds field Unix cron lacks &mdash; and should always specify a <code>zone</code>.</p></div></details>
+<details><summary data-q="21">What is the default scheduler pool size, and why does it matter? <span class="pill p2">common</span></summary><div class="ans"><p><b>One.</b> Every <code>@Scheduled</code> method shares a single thread, so one slow job blocks every other job; the symptom is jobs "not running", not an error. Set <code>spring.task.scheduling.pool.size</code> to at least the number of scheduled methods &mdash; a one-line change almost every project needs and nobody makes until it bites.</p></div></details>
+<details><summary data-q="22">You deploy three replicas and your nightly job runs three times. How do you fix it? <span class="pill p1">every round</span></summary><div class="ans"><p><code>@Scheduled</code> is per-JVM. The usual answer is a distributed lock: ShedLock, one annotation backed by a DB or Redis row, only the lock holder runs. The critical setting is <code>lockAtMostFor</code>: if a pod dies mid-job the lock row remains, and without a maximum the job never runs again. Alternatives: Quartz clustering for persistent jobs and misfire handling, or a Kubernetes CronJob calling an endpoint. Either way make the job idempotent &mdash; locks reduce duplicate runs, they do not eliminate them.</p></div></details>
+<details><summary data-q="23">How would you design an end-of-day settlement job safely? <span class="pill p3">senior</span> <span class="pill p2">fintech</span></summary><div class="ans"><p>Triggered by cron with an explicit zone (settlement cut-off is a business-time concept). Distributed lock with <code>lockAtMostFor</code> above the worst runtime. The job itself keyed by settlement date and idempotent: re-running for the same date must be a no-op or a safe overwrite, never a double posting. Process in batches with per-batch transactions (<code>TransactionTemplate</code>, Phase 5) so one bad record does not roll back a million. Record progress in a job-run table so a restart resumes rather than restarts. Emit a metric and an alert on "did not run by 02:30", because a silently skipped settlement is worse than a failed one.</p></div></details>
+</div>
+
+<h3>Events</h3>
+<div class="qa">
+<details><summary data-q="24">What are Spring application events for, and what are their limits? <span class="pill p1">every round</span></summary><div class="ans"><p>In-process publish/subscribe. A service announces that something happened without knowing who cares, so a side effect becomes a new listener class rather than a new dependency. Since 4.2 the event is a plain record. The limits matter as much: in-memory, in-process, no persistence, no retry, no delivery guarantee. If the JVM dies between publish and listener the event is gone. It is not a substitute for Kafka or RabbitMQ.</p></div></details>
+<details><summary data-q="25">Is event publishing synchronous? <span class="pill p1">every round</span></summary><div class="ans"><p>Yes, by default &mdash; same thread, same transaction, listeners one after another. Two consequences: a slow listener slows the publisher's request, and a listener that throws propagates back and can roll the whole transaction back. Adding <code>@Async</code> moves it to the executor and reverses both.</p></div></details>
+<details><summary data-q="26">Why would you use @TransactionalEventListener? <span class="pill p1">every round</span></summary><div class="ans"><p>Because a plain <code>@EventListener</code> runs inside the publisher's transaction, so a confirmation email goes out before the commit &mdash; if the commit fails you told a customer about an order that does not exist. <code>@TransactionalEventListener</code> defers to a phase, <code>AFTER_COMMIT</code> by default. Two traps: writing to the database in AFTER_COMMIT silently does nothing (need <code>REQUIRES_NEW</code>), and with no transaction at all the listener does not fire unless <code>fallbackExecution = true</code>.</p></div></details>
+<details><summary data-q="27">What changes when you add @Async to an event listener? <span class="pill p2">common</span></summary><div class="ans"><p>Four things: an executor thread instead of the publisher's; no longer in the publisher's transaction; exceptions swallowed rather than propagating; MDC and SecurityContext empty without a <code>TaskDecorator</code>. The failure mode to design for is the third: the listener throws, nothing rolls back, nothing logs. For anything that must eventually happen, write an outbox row in the same transaction and let a poller publish it.</p></div></details>
+<details><summary data-q="28">Where should startup work go: @PostConstruct, a runner, or an event? <span class="pill p2">common</span></summary><div class="ans"><p>Not <code>@PostConstruct</code> if the work involves <code>@Transactional</code>, <code>@Async</code> or <code>@Cacheable</code> &mdash; proxies do not exist yet. <code>ApplicationRunner</code> when the work is part of starting up and should delay readiness; <code>@EventListener(ApplicationReadyEvent.class)</code> when it is a reaction to being ready (cache warming, service registration). Both fire with every proxy in place. <code>@PostConstruct</code> stays right for cheap, self-contained initialisation of the bean's own state.</p></div></details>
+<details><summary data-q="29">How do you test that an event was published and a listener ran? <span class="pill p3">senior</span></summary><div class="ans"><p><code>@RecordApplicationEvents</code> on a Spring test injects an <code>ApplicationEvents</code> you can query: <code>events.stream(OrderPlacedEvent.class).count()</code>. For the listener side, mock its collaborator and verify. For <code>@TransactionalEventListener</code> the trap is that a <code>@Transactional</code> test rolls back at the end, so AFTER_COMMIT listeners never fire &mdash; use <code>TestTransaction.flagForCommit()</code> + <code>end()</code>, or run the test without the test-managed transaction. For <code>@Async</code> listeners, either inject a synchronous executor in the test profile or await with Awaitility.</p></div></details>
+<details><summary data-q="30">Events vs direct calls vs a message broker: how do you choose? <span class="pill p3">senior</span></summary><div class="ans"><p>Direct call when the caller needs the result or must fail if the side effect fails. In-process event when the side effect is optional-ish, inside one deployable, and you want to decouple the growing list of reactions &mdash; and you accept it can be lost on a crash. Broker (via an outbox) when the side effect must eventually happen, crosses a service boundary, or needs replay. The tell: if the word "must" appears in the requirement, an in-memory event is the wrong tool.</p></div></details>
+<details><summary data-q="31">What is ContextRefreshedEvent firing twice about? <span class="pill p3">senior</span></summary><div class="ans"><p>Any context refresh publishes it, and a web app can have more than one context (a parent plus a child <code>DispatcherServlet</code> context in classic MVC, or a manual <code>refresh()</code>). Startup work listening to it can therefore run twice. That is why <code>ApplicationReadyEvent</code> is the recommendation: it is a Boot event tied to the <code>SpringApplication</code> run, fired exactly once.</p></div></details>
+<details><summary data-q="32">Give the one sentence that covers this phase. <span class="pill p1">every round</span></summary><div class="ans"><p><b>A proxy can only intercept calls that pass through it.</b> Self-invocation, private and final methods, <code>@PostConstruct</code> running before the proxy exists, <code>@Async</code> running on the caller's thread, <code>@Cacheable</code> never consulting the cache &mdash; one cause, five symptoms.</p></div></details>
+</div>
+</section>
+
+
+<!-- ============================================================ 14 -->
+<section id="s14">
+<h2><span class="num">14</span>What's wrong with this code?</h2><div class="h2rule"></div>
+
+<p class="lead">Ten snippets that look fine and are not. Say what breaks, when, and the fix &mdash; then open the answer. Most of them are the same bug wearing different clothes.</p>
+
+<div class="qa">
+<details><summary data-q="1">The aspect that never fires</summary><div class="ans"><pre><code>@Aspect
+<span class="kw">public class</span> LoggingAspect {
+    @Before(<span class="st">"execution(* com.acme.service.*.*(..))"</span>)
+    <span class="kw">public void</span> log(JoinPoint jp) { log.info(<span class="st">"-&gt; {}"</span>, jp.getSignature()); }
+}</code></pre><p><b>Silently nothing.</b> No <code>@Component</code>, so it is not a bean and the auto-proxy creator never sees it. Second suspect once fixed: the package is <code>com.acme.service</code> but the services live in <code>com.acme.order.service</code> &mdash; <code>*.*</code> does not descend; use <code>..</code>. Third: <code>starter-aop</code> missing from the POM.</p></div></details>
+<details><summary data-q="2">The advice that returns null</summary><div class="ans"><pre><code>@Around(<span class="st">"@annotation(Timed)"</span>)
+<span class="kw">public void</span> time(ProceedingJoinPoint pjp) <span class="kw">throws</span> Throwable {
+    <span class="kw">long</span> t0 = System.nanoTime();
+    pjp.proceed();
+    log.info(<span class="st">"took {}"</span>, System.nanoTime() - t0);
+}</code></pre><p><b>Every timed method now returns null.</b> An <code>@Around</code> must be declared to return <code>Object</code> and return the result of <code>proceed()</code>; a <code>void</code> around discards it. Also the timing is not in a <code>finally</code>, so failed calls are never measured.</p></div></details>
+<details><summary data-q="3">The batch with no transaction</summary><div class="ans"><pre><code>@Service <span class="kw">public class</span> ImportService {
+    <span class="kw">public void</span> importAll(List&lt;Row&gt; rows) { rows.forEach(<span class="kw">this</span>::importOne); }
+    @Transactional <span class="kw">public void</span> importOne(Row row) { repo.save(map(row)); }
+}</code></pre><p><b>Runs; no transaction ever opens.</b> Self-invocation: <code>this::importOne</code> never crosses the proxy. Each <code>save</code> runs in Spring Data's own per-call transaction, so a failure halfway leaves half the rows. Fix: move <code>importOne</code> to a <code>RowImporter</code> bean, or self-inject with <code>@Lazy</code>.</p></div></details>
+<details><summary data-q="4">Async on the wrong thread</summary><div class="ans"><pre><code>@Service <span class="kw">public class</span> SignupService {
+    <span class="kw">public void</span> signup(User u) { repo.save(u); sendWelcome(u); }
+    @Async <span class="kw">private void</span> sendWelcome(User u) { mail.send(u); }
+}</code></pre><p><b>The email is sent synchronously on the request thread.</b> Two reasons: <code>private</code> cannot be proxied by CGLIB, and it is a self-invocation anyway. Also nothing says <code>@EnableAsync</code> exists. Fix: public method on a separate <code>NotificationService</code>, called from <code>signup</code>.</p></div></details>
+<details><summary data-q="5">The pool that never grows</summary><div class="ans"><pre><code>ex.setCorePoolSize(<span class="nu">2</span>);
+ex.setMaxPoolSize(<span class="nu">50</span>);
+ex.setQueueCapacity(Integer.MAX_VALUE);</code></pre><p><b>Two threads forever, and an eventual OutOfMemoryError.</b> New threads are only created when the queue is full; an effectively unbounded queue means <code>maxPoolSize</code> is never consulted, and under sustained load the queue grows until the heap is gone. Fix: a small bounded queue (tens to low hundreds), a rejection policy you chose (<code>CallerRunsPolicy</code> for backpressure), a thread-name prefix.</p></div></details>
+<details><summary data-q="6">The lost exception</summary><div class="ans"><pre><code>@Async
+<span class="kw">public void</span> chargeCard(Payment p) {
+    gateway.charge(p);            <span class="cm">// throws GatewayException on decline</span>
+    repo.markCharged(p.id());
+}</code></pre><p><b>A declined card vanishes.</b> Exceptions from an <code>@Async void</code> method are swallowed; there is no log line and the caller already returned. Fix: register an <code>AsyncUncaughtExceptionHandler</code>; better, return <code>CompletableFuture</code> and handle it; best, do not make a money-moving call fire-and-forget at all &mdash; record intent in an outbox and process it with retries.</p></div></details>
+<details><summary data-q="7">The job that runs three times</summary><div class="ans"><pre><code>@Scheduled(cron = <span class="st">"0 0 2 * * *"</span>)
+<span class="kw">public void</span> sendInvoices() { invoiceService.sendAllDue(); }</code></pre><p><b>Fine with one pod; three invoices per customer with three.</b> <code>@Scheduled</code> is per-JVM. Also no <code>zone</code> (02:00 in whatever the container's TZ is) and the method is not idempotent. Fix: ShedLock with <code>lockAtMostFor</code> above the worst runtime, explicit zone, and <code>sendAllDue</code> keyed so a re-run for the same day is a no-op.</p></div></details>
+<details><summary data-q="8">The confirmation for an order that does not exist</summary><div class="ans"><pre><code>@Transactional
+<span class="kw">public</span> Order place(OrderRequest r) {
+    Order o = repo.save(toOrder(r));
+    events.publishEvent(<span class="kw">new</span> OrderPlacedEvent(o.getId()));
+    inventory.reserve(o);         <span class="cm">// may throw -&gt; rollback</span>
+    <span class="kw">return</span> o;
+}
+@EventListener <span class="kw">public void</span> onPlaced(OrderPlacedEvent e) { sms.send(<span class="st">"Order confirmed"</span>); }</code></pre><p><b>The SMS goes out, then the transaction rolls back.</b> A plain listener runs synchronously inside the publisher's transaction, before commit. Fix: <code>@TransactionalEventListener</code> (AFTER_COMMIT). If the listener must also write to the DB, add <code>@Transactional(propagation = REQUIRES_NEW)</code>.</p></div></details>
+<details><summary data-q="9">The audit row that never appears</summary><div class="ans"><pre><code>@TransactionalEventListener
+<span class="kw">public void</span> audit(OrderPlacedEvent e) { auditRepo.save(<span class="kw">new</span> AuditEntry(e)); }</code></pre><p><b>Runs without error; no row is written.</b> AFTER_COMMIT executes after the transaction completed, so the save joins no transaction and is never flushed. Fix: <code>@Transactional(propagation = Propagation.REQUIRES_NEW)</code> on the listener. If the audit must be atomic with the order, do not use an event at all &mdash; write it in the same transaction as the order.</p></div></details>
+<details><summary data-q="10">Warm-up that warms nothing</summary><div class="ans"><pre><code>@Service <span class="kw">public class</span> RateService {
+    @PostConstruct <span class="kw">void</span> warm() { <span class="kw">for</span> (String c : CURRENCIES) rate(c); }
+    @Cacheable(<span class="st">"rates"</span>) <span class="kw">public</span> Rate rate(String currency) { <span class="kw">return</span> client.fetch(currency); }
+}</code></pre><p><b>The cache stays empty.</b> Twice over: <code>@PostConstruct</code> runs before the proxy exists, and <code>rate(c)</code> is a self-invocation. Fix: move the warm-up to an <code>@EventListener(ApplicationReadyEvent.class)</code> in another bean that calls <code>rateService.rate(c)</code> through the proxy.</p></div></details>
+</div>
+</section>
+
+
+<!-- ============================================================ 15 -->
+<section id="s15">
+<h2><span class="num">15</span>Hands-on lab</h2><div class="h2rule"></div>
+
+<p class="lead">Every task is something to build in <code>springboot-basic</code> and prove with a test or a log line. Click a row to save the code you wrote. Almost every row here has the same proof: a log line with a <b>thread name</b> and a <b>transaction id</b>, or the absence of one.</p>
+<p class="probhint">Level = how much of the phase it exercises. Easy: one concept. Medium: two interacting. Hard: you need the whole mental model.</p>
+<div class="tw"><table class="probs">
+<tr><th>Task</th><th>Level</th><th>What it proves</th></tr>
+<tr><td>Add starter-aop; write a @Before aspect on execution(* ..service..*(..)); forget @Component, observe silence, add it</td><td><span class="lv e">Easy</span></td><td>Both annotations, always</td></tr>
+<tr><td>One aspect with all five advice types on one method; log each; call it normally and with a thrown exception; record the order</td><td><span class="lv e">Easy</span></td><td>Nesting order of the five advices</td></tr>
+<tr><td>Write an @Around that forgets proceed(); then one declared void; observe null returns; fix both</td><td><span class="lv e">Easy</span></td><td>The three silent @Around mistakes</td></tr>
+<tr><td>Rename a package under a package-based pointcut and watch the aspect stop; replace with @annotation(Audited)</td><td><span class="lv e">Easy</span></td><td>Why annotation pointcuts survive refactoring</td></tr>
+<tr><td>Bind the annotation and a method argument into advice with @annotation(audited) &amp;&amp; args(request, ..)</td><td><span class="lv m">Medium</span></td><td>Argument binding</td></tr>
+<tr><td>Print bean.getClass() for a service with an interface: once with spring.aop.proxy-target-class=false, once true; inject the concrete class in the first case and read the startup error</td><td><span class="lv m">Medium</span></td><td>JDK proxy vs CGLIB; BeanNotOfRequiredTypeException</td></tr>
+<tr><td>Make a service class final and read the startup failure; make one method final and observe it is silently un-advised</td><td><span class="lv e">Easy</span></td><td>What CGLIB cannot advise</td></tr>
+<tr><td>Reproduce self-invocation: processAll() calling @Transactional processOne(); log TransactionSynchronizationManager.isActualTransactionActive() inside; fix by extracting a bean, then by @Lazy self-injection</td><td><span class="lv m">Medium</span></td><td>The self-invocation problem and both real fixes</td></tr>
+<tr><td>Three aspects with @Order(1..3) logging entry/exit; confirm first-in-last-out; then two @Before in one aspect and observe undefined order</td><td><span class="lv e">Easy</span></td><td>Aspect ordering</td></tr>
+<tr><td>Put a retry aspect INSIDE the transaction (higher @Order than tx), throw on attempt 1, observe UnexpectedRollbackException on attempt 2; move it outside</td><td><span class="lv h">Hard</span></td><td>Why retry must wrap the transaction</td></tr>
+<tr><td>@Timed aspect with Micrometer Timer.Sample and outcome tag; check /actuator/metrics/method.duration</td><td><span class="lv m">Medium</span></td><td>Practical timing aspect</td></tr>
+<tr><td>@Async method returning a record; observe the caller gets null; change to CompletableFuture and join()</td><td><span class="lv e">Easy</span></td><td>Return types that @Async respects</td></tr>
+<tr><td>Throw from an @Async void method; observe nothing in the logs; add an AsyncUncaughtExceptionHandler</td><td><span class="lv e">Easy</span></td><td>Swallowed exceptions</td></tr>
+<tr><td>Three @Async calls of 300/250/400 ms sleep; combine with allOf; measure ~400 ms total; then catch a CompletionException and unwrap getCause()</td><td><span class="lv m">Medium</span></td><td>Parallel fan-out and exception wrapping</td></tr>
+<tr><td>Set core=2, max=50, queue=10000; submit 200 tasks; count distinct thread names (2); shrink the queue to 10 and re-count</td><td><span class="lv m">Medium</span></td><td>The queue fills before new threads are created</td></tr>
+<tr><td>Log the MDC traceId inside an @Async method (empty); add a TaskDecorator copying the MDC; log again; remove the finally-clear and show the leak on the next task</td><td><span class="lv m">Medium</span></td><td>ThreadLocal context across the pool</td></tr>
+<tr><td>Two executors (emailExecutor, reportExecutor); block one with slow tasks and show the other keeps running</td><td><span class="lv m">Medium</span></td><td>Bulkheads inside a process</td></tr>
+<tr><td>fixedRate=1000 with a 3 s body vs fixedDelay=1000; log start timestamps for 20 s and compare drift/overlap</td><td><span class="lv e">Easy</span></td><td>fixedRate vs fixedDelay</td></tr>
+<tr><td>Two @Scheduled methods, one sleeping 30 s; observe the other never runs; set spring.task.scheduling.pool.size=2</td><td><span class="lv e">Easy</span></td><td>The default scheduler pool size is one</td></tr>
+<tr><td>Cron "0 */1 * * * *" with and without zone; run with -Duser.timezone=UTC and compare</td><td><span class="lv e">Easy</span></td><td>Six-field cron and the implicit zone</td></tr>
+<tr><td>Run two instances on ports 8080/8081 with the same @Scheduled job writing rows; count duplicates; add ShedLock (JDBC) and re-count; kill one mid-job and watch lockAtMostFor release</td><td><span class="lv h">Hard</span></td><td>Scheduling across replicas</td></tr>
+<tr><td>Publish a record event; three listeners logging thread name; confirm same thread, sequential, and that a throwing listener fails the publisher</td><td><span class="lv e">Easy</span></td><td>Synchronous publishing</td></tr>
+<tr><td>Reproduce puzzle 8: plain listener sends before a rollback; switch to @TransactionalEventListener; then write to DB in AFTER_COMMIT and observe no row until REQUIRES_NEW is added</td><td><span class="lv m">Medium</span></td><td>Transaction phases and the after-commit write trap</td></tr>
+<tr><td>Add @Async to a listener; show it is no longer in the transaction, exceptions vanish, and MDC is empty; fix each</td><td><span class="lv m">Medium</span></td><td>The four things @Async changes on a listener</td></tr>
+<tr><td>Write a @RecordApplicationEvents test asserting the event count; then a test for an AFTER_COMMIT listener using TestTransaction.flagForCommit()</td><td><span class="lv h">Hard</span></td><td>Testing events and transactional listeners</td></tr>
+<tr><td>Call a @Cacheable method from @PostConstruct; check the cache is empty; move the warm-up to ApplicationReadyEvent in another bean</td><td><span class="lv e">Easy</span></td><td>Proxies do not exist yet in @PostConstruct</td></tr>
+<tr><td>Log every built-in Boot event with its timestamp from a single listener; note which fire before beans exist and which fire twice on a manual refresh</td><td><span class="lv e">Easy</span></td><td>The startup event sequence</td></tr>
+<tr><td>Enable spring.threads.virtual.enabled=true; re-run the executor and scheduler tasks; observe thread names and what changed about pool sizes</td><td><span class="lv m">Medium</span></td><td>What virtual threads change for @Async and @Scheduled</td></tr>
+</table></div>
+</section>
+
+
+<!-- ============================================================ 16 -->
+<section id="s16">
+<h2><span class="num">16</span>Cheat sheet</h2><div class="h2rule"></div>
+
+<div class="box def">
+<span class="lbl">The sentence that carries the phase</span>
+<p><b>A proxy can only intercept calls that pass through it.</b> Self-invocation, <code>private</code>/<code>final</code>/<code>static</code>, <code>@PostConstruct</code> before the proxy exists, <code>@Async</code> on the caller's thread, <code>@Cacheable</code> never consulted &mdash; one cause, five symptoms.</p>
+</div>
+
+<h3>Vocabulary</h3>
+<p>Join point (a method execution on a bean) &middot; pointcut (which ones) &middot; advice (what runs, when) &middot; aspect (the class) &middot; target (your bean) &middot; proxy (what is injected) &middot; weaving (runtime, via <code>BeanPostProcessor</code> at stage 8).</p>
+
+<h3>Advice</h3>
+<p><code>@Around</code>[ <code>@Before</code> &rarr; target &rarr; <code>@AfterReturning</code>|<code>@AfterThrowing</code> &rarr; <code>@After</code> ]<code>@Around</code>. Only <code>@Around</code> changes args, skips, replaces, swallows. Must return <code>Object</code>; call <code>proceed()</code> exactly once. Prefer the weakest advice.</p>
+
+<h3>Pointcuts</h3>
+<p><code>execution(mod ret type.method(args))</code> with <code>*</code> and <code>..</code> &middot; <code>within</code> &middot; <code>@annotation</code> (preferred: survives refactoring) &middot; <code>@within</code> &middot; <code>bean(*Service)</code> &middot; <code>args</code> &middot; combine with <code>&amp;&amp; || !</code> &middot; name them with <code>@Pointcut</code>.</p>
+
+<h3>Proxies</h3>
+<p>JDK = interfaces, interface methods only, <code>BeanNotOfRequiredTypeException</code> when injecting the class &middot; CGLIB = subclass, Boot default since 2.0, cannot do <code>final</code>/<code>private</code>/<code>static</code> &middot; Objenesis: no constructor needed &middot; Kotlin: <code>all-open</code>.</p>
+
+<h3>Self-invocation fixes</h3>
+<p>Extract to another bean (right) &middot; <code>@Lazy</code> self-injection (ok) &middot; <code>AopContext.currentProxy()</code> (avoid) &middot; AspectJ LTW (rarely). Review rule: annotated method whose only callers are in the same file = dead config. Prove with <code>transaction.interceptor=TRACE</code>.</p>
+
+<h3>Ordering</h3>
+<p>Lower <code>@Order</code> = outer. Logging &gt; security &gt; retry &gt; caching &gt; transaction (innermost, <code>LOWEST_PRECEDENCE</code> by default). Order within one aspect is undefined.</p>
+
+<h3>@Async</h3>
+<p><code>@EnableAsync</code> &middot; public, called from outside &middot; returns <code>void</code> (exceptions swallowed &rarr; <code>AsyncUncaughtExceptionHandler</code>), <code>CompletableFuture</code> (<code>CompletionException</code>, unwrap <code>getCause()</code>), else <code>null</code> &middot; bean named <code>taskExecutor</code> is the default &middot; MDC/SecurityContext/transaction do not follow &rarr; <code>TaskDecorator</code> &middot; Boot 3.2+: default pool is real; before: thread per task.</p>
+
+<h3>Pool growth</h3>
+<p>&lt; core &rarr; new thread &middot; core reached &rarr; <b>queue</b> &middot; queue full &rarr; grow to max &middot; max + full &rarr; reject. Big queue = max never reached. Never unbounded. <code>CallerRunsPolicy</code> = backpressure. Name your threads. Wait on shutdown. Separate pools = bulkheads.</p>
+
+<h3>@Scheduled</h3>
+<p><code>fixedDelay</code> end&rarr;start (safe) &middot; <code>fixedRate</code> start&rarr;start (overlaps/drifts) &middot; <code>cron</code> six fields, seconds first, set <code>zone</code> &middot; default pool size <b>1</b> &rarr; <code>spring.task.scheduling.pool.size</code> &middot; per-JVM &rarr; ShedLock with <code>lockAtMostFor</code>, or CronJob, or Quartz &middot; jobs idempotent.</p>
+
+<h3>Events</h3>
+<p>Plain record, <code>ApplicationEventPublisher</code> &middot; synchronous, same thread, same transaction, exception propagates &middot; <code>@EventListener(condition=...)</code>, <code>@Order</code>, return value republishes &middot; <code>@TransactionalEventListener</code>: BEFORE_COMMIT / <b>AFTER_COMMIT</b> / AFTER_ROLLBACK / AFTER_COMPLETION; DB write after commit needs <code>REQUIRES_NEW</code>; no tx &rarr; <code>fallbackExecution</code> &middot; <code>@Async</code> listener: new thread, no tx, swallowed, empty MDC &middot; in-memory only &rarr; outbox for "must".</p>
+
+<h3>Startup work</h3>
+<p><code>@PostConstruct</code> for cheap own-state init &middot; runner when it should delay readiness &middot; <code>ApplicationReadyEvent</code> for reactions (fires once; <code>ContextRefreshedEvent</code> can fire twice).</p>
+
+<h3>Beyond the PDF</h3>
+<p>Virtual threads shrink the "free the thread" motive for <code>@Async</code> but not fan-out or fire-and-forget; pool-size bulkheads stop meaning much; pinning on <code>synchronized</code> before Java 24 &middot; <code>@RecordApplicationEvents</code> + <code>TestTransaction.flagForCommit()</code> for testing &middot; Micrometer ships <code>@Timed</code>; spring-retry / Resilience4j ship retry &middot; settlement jobs: zone, lock, idempotent by date, batch transactions, "did not run" alert.</p>
+
+<p>Phase 5 puts this to work immediately: <code>@Transactional</code> is the most important proxy in Spring, and its module is largely a study of what happens when the call does and does not cross the boundary.</p>
+</section>
+
+
+
+
+<footer>
+Spring AOP, Async &amp; Events &mdash; Complete Revision &nbsp;&middot;&nbsp; complete-springboot/notes/
+</footer>
+
+</main>
+</div>
+
+<!-- Your saved notes are written into this block by "Save to file". Do not edit by hand. -->
+<script id="cf-data" type="application/json">{"topics":[],"notes":{}}</script>
+
+<script>
+/* =====================================================================
+   Notes engine — lets you add your own coloured notes and whole new
+   topics without ever writing HTML.
+   Storage: browser localStorage (instant) + baked into this file when
+   you press "Save to file".
+   ===================================================================== */
+(function () {
+  'use strict';
+
+  var STORE = 'springaop-notes-v1';
+
+  /* Name stamped on every note you write. Change the word below if you
+     ever want a different signature. */
+  var AUTHOR = 'Subhranshu';
+
+  var KINDS = [
+    { k: 'def',   label: 'Concept'        },
+    { k: 'win',   label: 'Do this'        },
+    { k: 'trap',  label: 'Trap'           },
+    { k: 'ask',   label: 'Asked'          },
+    { k: 'under', label: 'Under the hood' }
+  ];
+
+  var root = document.documentElement;
+  var main = document.querySelector('main');
+  var rail = document.querySelector('.rail');
+  var data = load();
+  var dirty = false;
+
+  /* ---------------------------------------------------------- theme */
+  try {
+    var savedTheme = localStorage.getItem('cf-theme');
+    if (savedTheme) root.setAttribute('data-theme', savedTheme);
+  } catch (e) {}
+
+  /* ---- collapsible index rail ---- */
+  (function () {
+    var KEY = 'notes-rail-collapsed';
+    function setRail(collapsed) {
+      document.body.classList.toggle('rail-collapsed', collapsed);
+      try { localStorage.setItem(KEY, collapsed ? '1' : '0'); } catch (e) {}
+    }
+    try { if (localStorage.getItem(KEY) === '1') setRail(true); } catch (e) {}
+    document.getElementById('rail-close').addEventListener('click', function () { setRail(true); });
+    document.getElementById('rail-open').addEventListener('click', function () { setRail(false); });
+  })();
+
+  document.getElementById('btn-theme').addEventListener('click', function () {
+    var isDark = root.getAttribute('data-theme') === 'dark' ||
+      (!root.hasAttribute('data-theme') &&
+       window.matchMedia('(prefers-color-scheme: dark)').matches);
+    var next = isDark ? 'light' : 'dark';
+    root.setAttribute('data-theme', next);
+    try { localStorage.setItem('cf-theme', next); } catch (e) {}
+  });
+
+  /* ---------------------------------------------------------- storage */
+  function load() {
+    var d = null;
+    try {
+      var raw = localStorage.getItem(STORE);
+      if (raw) d = JSON.parse(raw);
+    } catch (e) {}
+    if (!d) {
+      var el = document.getElementById('cf-data');
+      if (el) { try { d = JSON.parse(el.textContent || 'null'); } catch (e2) {} }
+    }
+    if (!d || typeof d !== 'object') d = {};
+    if (!Array.isArray(d.topics)) d.topics = [];
+    if (!d.notes || typeof d.notes !== 'object') d.notes = {};
+    /* My solutions, keyed by "<section id>:<problem slug>". They live in
+       the same object as the notes so localStorage, the gist and
+       "Save to file" all carry them with no extra plumbing. */
+    if (!d.code || typeof d.code !== 'object') d.code = {};
+
+    /* Notes written before sync existed have no id. Give them one now,
+       otherwise the merge cannot tell them apart and would duplicate
+       them on every machine. */
+    d.topics.forEach(function (t) { if (!t.id) t.id = 'u' + uid(); });
+    Object.keys(d.notes).forEach(function (k) {
+      if (!Array.isArray(d.notes[k])) { delete d.notes[k]; return; }
+      d.notes[k].forEach(function (n) { if (n && !n.id) n.id = uid(); });
+    });
+    return prune(d);
+  }
+
+  function save() {
+    dirty = true;
+    document.body.classList.add('unsaved');
+    cache();
+    if (gist && gist.cfg()) gist.schedulePush();
+  }
+
+  /* Write to localStorage without touching the dirty flag — used both by
+     save() and by a pull, where the incoming data is already safe on the
+     server and must not be reported as unsaved local work. */
+  function cache() {
+    try { localStorage.setItem(STORE, JSON.stringify(data)); }
+    catch (e) { toast('Browser storage is blocked — press "Save to file" so nothing is lost.'); }
+  }
+
+  function uid() {
+    return 'n' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+
+  function indexOfNote(secId, id) {
+    var list = data.notes[secId] || [];
+    for (var i = 0; i < list.length; i++) if (list[i].id === id) return i;
+    return -1;
+  }
+
+  function findNote(secId, id) {
+    var i = indexOfNote(secId, id);
+    return i < 0 ? null : data.notes[secId][i];
+  }
+
+  /* ==================================================================
+     MERGE  —  how two machines agree on one set of notes
+     Every note and topic carries a stable id and an mtime. Merging is a
+     union by id where the newer mtime wins, so the result does not
+     depend on who happens to sync first, and no edit is ever silently
+     dropped. Deletes travel as tombstones (deleted:true) for the same
+     reason — a hard delete would be resurrected by the other side's
+     copy on the very next merge.
+     ================================================================== */
+  function newer(a, b) {
+    /* Undated rows come from before sync existed; treat them as oldest
+       so a dated edit always wins over them. */
+    var ta = a && a.mtime || 0, tb = b && b.mtime || 0;
+    if (ta !== tb) return ta > tb ? a : b;
+    /* Same millisecond: break the tie on content so that merging A into B
+       and B into A give the same answer. Without this the winner would
+       depend on which machine happened to sync first. */
+    return JSON.stringify(a) <= JSON.stringify(b) ? a : b;
+  }
+
+  /* A short fingerprint of what rows exist and how fresh each one is.
+     Used to decide whether our merged copy actually has anything the
+     server lacks, so we only write when there is something to write. */
+  function sig(d) {
+    var parts = [];
+    (d.topics || []).forEach(function (t) {
+      parts.push('t' + t.id + ':' + (t.mtime || 0) + ':' + (t.deleted ? 1 : 0));
+    });
+    Object.keys(d.notes || {}).forEach(function (k) {
+      (d.notes[k] || []).forEach(function (n) {
+        parts.push('n' + k + '/' + n.id + ':' + (n.mtime || 0) + ':' + (n.deleted ? 1 : 0));
+      });
+    });
+    Object.keys(d.code || {}).forEach(function (k) {
+      var c = d.code[k] || {};
+      parts.push('c' + k + ':' + (c.mtime || 0) + ':' + (c.deleted ? 1 : 0));
+    });
+    return parts.sort().join('|');
+  }
+
+  function mergeList(mine, theirs) {
+    var out = [], seen = {};
+    (mine || []).concat(theirs || []).forEach(function (row) {
+      if (!row || !row.id) return;
+      if (seen[row.id] == null) { seen[row.id] = out.length; out.push(row); }
+      else out[seen[row.id]] = newer(out[seen[row.id]], row);
+    });
+    return out;
+  }
+
+  function mergeData(mine, theirs) {
+    var out = { topics: mergeList(mine.topics, theirs.topics), notes: {} };
+    var keys = {};
+    Object.keys(mine.notes || {}).forEach(function (k) { keys[k] = 1; });
+    Object.keys(theirs.notes || {}).forEach(function (k) { keys[k] = 1; });
+    Object.keys(keys).forEach(function (k) {
+      out.notes[k] = mergeList((mine.notes || {})[k], (theirs.notes || {})[k]);
+    });
+    /* solutions: one row per problem, newer save wins */
+    out.code = {};
+    var mc = mine.code || {}, tc = theirs.code || {};
+    Object.keys(mc).concat(Object.keys(tc)).forEach(function (k) {
+      if (out.code[k]) return;
+      out.code[k] = (mc[k] && tc[k]) ? newer(mc[k], tc[k]) : (mc[k] || tc[k]);
+    });
+    return out;
+  }
+
+  /* Tombstones are only needed until every machine has seen them.
+     Drop the ones older than 90 days so the payload cannot grow without
+     bound. */
+  var TOMB_TTL = 90 * 24 * 60 * 60 * 1000;
+
+  function prune(d) {
+    var cut = Date.now() - TOMB_TTL;
+    d.topics = d.topics.filter(function (t) {
+      return !(t.deleted && (t.mtime || 0) < cut);
+    });
+    Object.keys(d.notes).forEach(function (k) {
+      d.notes[k] = d.notes[k].filter(function (n) {
+        return !(n.deleted && (n.mtime || 0) < cut);
+      });
+      if (!d.notes[k].length) delete d.notes[k];
+    });
+    Object.keys(d.code || {}).forEach(function (k) {
+      if (d.code[k].deleted && (d.code[k].mtime || 0) < cut) delete d.code[k];
+    });
+    return d;
+  }
+
+  function countLive(d) {
+    var n = 0;
+    Object.keys(d.notes || {}).forEach(function (k) {
+      d.notes[k].forEach(function (x) { if (!x.deleted) n++; });
+    });
+    return n;
+  }
+
+  /* ---------------------------------------------------------- helpers */
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text != null) n.textContent = text;
+    return n;
+  }
+
+  function mark(n) { n.setAttribute('data-injected', '1'); return n; }
+
+  function toast(msg) {
+    var old = document.querySelector('.toast');
+    if (old) old.remove();
+    var t = mark(el('div', 'toast', msg));
+    document.body.appendChild(t);
+    setTimeout(function () { if (t.parentNode) t.remove(); }, 4200);
+  }
+
+  function sections() {
+    return Array.prototype.slice.call(main.querySelectorAll('section'));
+  }
+
+  function kindLabel(k) {
+    for (var i = 0; i < KINDS.length; i++) if (KINDS[i].k === k) return KINDS[i].label;
+    return 'Note';
+  }
+
+  /* ------------------------------------------------ Java highlighter
+     Colours pasted code the same way as the hand-written blocks:
+       grey italic = comments   green = strings   orange = keywords
+       blue = numbers
+     Order matters: comments and strings are matched first so a // or a
+     keyword inside them is left alone. Text is inserted as text nodes,
+     so < > & in your code can never break the page.                    */
+  var TOKEN = new RegExp(
+    '(\\/\\/[^\\n]*|\\/\\*[\\s\\S]*?\\*\\/)' +                    /* 1 comment   */
+    '|("(?:\\\\.|[^"\\\\])*"|\'(?:\\\\.|[^\'\\\\])*\')' +          /* 2 string    */
+    '|(@[A-Za-z_]\\w*)' +                                          /* 3 annotation*/
+    '|(\\b0[xXbB][0-9a-fA-F_]+[LlFfDd]?\\b' +
+      '|\\b\\d[\\d_]*(?:\\.[\\d_]+)?(?:[eE][-+]?\\d+)?[LlFfDd]?\\b)' + /* 4 number */
+    '|\\b(abstract|assert|boolean|break|byte|case|catch|char|class|const|continue' +
+      '|default|do|double|else|enum|extends|final|finally|float|for|goto|if' +
+      '|implements|import|instanceof|int|interface|long|native|new|package|private' +
+      '|protected|public|record|return|sealed|short|static|strictfp|super|switch' +
+      '|synchronized|this|throw|throws|transient|try|var|void|volatile|while|yield' +
+      '|true|false|null)\\b',                                      /* 5 keyword   */
+    'g');
+
+  /* ------------------------------------------------ image embedding
+     Pictures are shrunk to 1200px and stored INSIDE this file as a
+     data: URI, so they survive moving the file, exporting it and git.
+     Nothing is ever linked to a path on your disk.                    */
+  var MAX_DIM = 1200;
+
+  function compressImage(file, cb) {
+    var fr = new FileReader();
+    fr.onerror = function () { cb(null); };
+    fr.onload = function () {
+      var img = new Image();
+      img.onerror = function () { cb(null); };
+      img.onload = function () {
+        var w = img.naturalWidth || img.width;
+        var h = img.naturalHeight || img.height;
+        if (!w || !h) { cb(fr.result); return; }
+        var scale = Math.min(1, MAX_DIM / Math.max(w, h));
+        var cw = Math.max(1, Math.round(w * scale));
+        var ch = Math.max(1, Math.round(h * scale));
+
+        var png = null, jpg = null;
+        try {
+          var c1 = document.createElement('canvas');
+          c1.width = cw; c1.height = ch;
+          c1.getContext('2d').drawImage(img, 0, 0, cw, ch);
+          png = c1.toDataURL('image/png');
+        } catch (e) {}
+        try {
+          var c2 = document.createElement('canvas');
+          c2.width = cw; c2.height = ch;
+          var x2 = c2.getContext('2d');
+          x2.fillStyle = '#ffffff';
+          x2.fillRect(0, 0, cw, ch);
+          x2.drawImage(img, 0, 0, cw, ch);
+          jpg = c2.toDataURL('image/jpeg', 0.82);
+        } catch (e) {}
+
+        var best = (png && jpg) ? (png.length <= jpg.length ? png : jpg)
+                                : (png || jpg || fr.result);
+        cb(best);
+      };
+      img.src = fr.result;
+    };
+    fr.readAsDataURL(file);
+  }
+
+  function addImages(fileList, bucket, done) {
+    var files = Array.prototype.slice.call(fileList || [])
+      .filter(function (f) { return f && /^image\//.test(f.type); });
+    if (!files.length) return;
+    var left = files.length;
+    files.forEach(function (f) {
+      compressImage(f, function (src) {
+        if (src) bucket.push(src);
+        if (--left === 0) done();
+      });
+    });
+  }
+
+  function highlightInto(codeEl, src) {
+    TOKEN.lastIndex = 0;
+    var last = 0, m;
+    while ((m = TOKEN.exec(src)) !== null) {
+      if (m.index === TOKEN.lastIndex) { TOKEN.lastIndex++; continue; }
+      if (m.index > last) {
+        codeEl.appendChild(document.createTextNode(src.slice(last, m.index)));
+      }
+      var cls = m[1] ? 'cm' : m[2] ? 'st' : m[3] ? 'kw' : m[4] ? 'nu' : 'kw';
+      codeEl.appendChild(el('span', cls, m[0]));
+      last = TOKEN.lastIndex;
+    }
+    if (last < src.length) codeEl.appendChild(document.createTextNode(src.slice(last)));
+  }
+
+  /* ------------------------------------------------ render one note */
+  function noteEl(secId, note) {
+    var box = mark(el('div', 'box ' + note.kind));
+
+    var lbl = el('span', 'lbl');
+    lbl.appendChild(document.createTextNode(note.label || kindLabel(note.kind)));
+    lbl.appendChild(el('span', 'tag', '  · written by ' + (note.author || AUTHOR)));
+    box.appendChild(lbl);
+
+    var ops = el('div', 'noteops');
+    var edit = el('button', 'opbtn', 'Edit');
+    edit.type = 'button';
+    edit.addEventListener('click', function () { openEditor(secId, note.id, box); });
+    var del = el('button', 'opbtn', 'Delete');
+    del.type = 'button';
+    del.addEventListener('click', function () {
+      if (!window.confirm('Delete this note?')) return;
+      /* Tombstone, not splice: a removed row has to be able to travel to
+         the other machine. A hard delete would simply be re-added by the
+         next merge, because the other side still has the note.          */
+      note.deleted = true;
+      note.mtime = Date.now();
+      note.text = ''; note.code = ''; note.images = [];
+      save(); render();
+    });
+    ops.appendChild(edit); ops.appendChild(del);
+    box.appendChild(ops);
+
+    String(note.text || '').split(/\n\s*\n/).forEach(function (para) {
+      if (!para.trim()) return;
+      var p = el('p');
+      para.split('\n').forEach(function (line, i) {
+        if (i) p.appendChild(el('br'));
+        p.appendChild(document.createTextNode(line));
+      });
+      box.appendChild(p);
+    });
+
+    if (note.code && note.code.trim()) {
+      var pre = el('pre');
+      pre.style.margin = '0 0 12px';
+      var codeEl = el('code');
+      highlightInto(codeEl, note.code);
+      pre.appendChild(codeEl);
+      box.appendChild(pre);
+    }
+
+    (note.images || []).forEach(function (src, i) {
+      var fig = el('figure', 'notefig');
+      var im = document.createElement('img');
+      im.src = src;
+      im.loading = 'lazy';
+      im.alt = (note.label || kindLabel(note.kind)) + ' — picture ' + (i + 1);
+      fig.appendChild(im);
+      box.appendChild(fig);
+    });
+
+    return box;
+  }
+
+  /* ------------------------------------------------ the note editor */
+  function openEditor(secId, noteId, replaceNode) {
+    var existing = noteId != null ? findNote(secId, noteId) : null;
+    var host = document.getElementById(secId);
+    if (!host) return;
+
+    var form = mark(el('div', 'editor'));
+
+    /* colour chips */
+    var r1 = el('div', 'row');
+    r1.appendChild(el('label', null, 'Colour'));
+    var chips = el('div', 'chips');
+    var group = 'kind-' + uid();
+    KINDS.forEach(function (kd) {
+      var lab = el('label', 'chip c-' + kd.k);
+      var inp = document.createElement('input');
+      inp.type = 'radio'; inp.name = group; inp.value = kd.k;
+      if (existing ? existing.kind === kd.k : kd.k === 'def') inp.checked = true;
+      lab.appendChild(inp);
+      lab.appendChild(el('span', null, kd.label));
+      chips.appendChild(lab);
+    });
+    r1.appendChild(chips);
+    form.appendChild(r1);
+
+    /* label */
+    var r2 = el('div', 'row');
+    r2.appendChild(el('label', null, 'Heading (optional)'));
+    var labelInput = document.createElement('input');
+    labelInput.type = 'text';
+    labelInput.placeholder = 'e.g. My doubt / Asked in TCS / Revise again';
+    labelInput.value = existing ? (existing.label || '') : '';
+    r2.appendChild(labelInput);
+    form.appendChild(r2);
+
+    /* text */
+    var r3 = el('div', 'row');
+    r3.appendChild(el('label', null, 'Note'));
+    var textArea = document.createElement('textarea');
+    textArea.placeholder = 'Write normally. Leave a blank line to start a new paragraph.';
+    textArea.value = existing ? (existing.text || '') : '';
+    r3.appendChild(textArea);
+    form.appendChild(r3);
+
+    /* code */
+    var r4 = el('div', 'row');
+    r4.appendChild(el('label', null, 'Code (optional)'));
+    var codeArea = document.createElement('textarea');
+    codeArea.className = 'code';
+    codeArea.placeholder = 'Paste Java here. Type < and > normally — nothing needs escaping.';
+    codeArea.value = existing ? (existing.code || '') : '';
+    r4.appendChild(codeArea);
+    form.appendChild(r4);
+
+    /* images */
+    var imgs = (existing && Array.isArray(existing.images)) ? existing.images.slice() : [];
+    var r5 = el('div', 'row');
+    r5.appendChild(el('label', null, 'Images (optional)'));
+
+    var zone = el('div', 'dropzone');
+    var fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = 'image/*';
+    fileInput.multiple = true;
+    zone.appendChild(fileInput);
+    zone.appendChild(el('div', 'zonetext',
+      'Click to choose a picture   ·   paste a screenshot with Ctrl+V   ·   or drop files here'));
+    r5.appendChild(zone);
+
+    var thumbs = el('div', 'thumbs');
+    r5.appendChild(thumbs);
+    r5.appendChild(el('div', 'hint',
+      'Pictures are shrunk and stored inside this file, so they never break. Ctrl+Enter saves, Esc cancels.'));
+    form.appendChild(r5);
+
+    function drawThumbs() {
+      while (thumbs.firstChild) thumbs.removeChild(thumbs.firstChild);
+      imgs.forEach(function (src, i) {
+        var t = el('div', 'thumb');
+        var im = document.createElement('img');
+        im.src = src;
+        im.alt = 'attached picture ' + (i + 1);
+        t.appendChild(im);
+        var x = el('button', 'thumbx', '×');
+        x.type = 'button';
+        x.title = 'Remove this picture';
+        x.addEventListener('click', function () { imgs.splice(i, 1); drawThumbs(); });
+        t.appendChild(x);
+        thumbs.appendChild(t);
+      });
+    }
+
+    function tookImages() {
+      drawThumbs();
+      var bytes = imgs.reduce(function (a, s) { return a + s.length; }, 0);
+      if (bytes > 3000000) {
+        toast('That is a lot of picture data — press "Save to file" soon so nothing is lost.');
+      }
+    }
+
+    zone.addEventListener('click', function (ev) {
+      if (ev.target !== fileInput) fileInput.click();
+    });
+    fileInput.addEventListener('change', function () {
+      addImages(fileInput.files, imgs, tookImages);
+      fileInput.value = '';
+    });
+    ['dragenter', 'dragover'].forEach(function (evt) {
+      zone.addEventListener(evt, function (ev) {
+        ev.preventDefault(); zone.classList.add('over');
+      });
+    });
+    ['dragleave', 'drop'].forEach(function (evt) {
+      zone.addEventListener(evt, function () { zone.classList.remove('over'); });
+    });
+    zone.addEventListener('drop', function (ev) {
+      ev.preventDefault();
+      addImages(ev.dataTransfer && ev.dataTransfer.files, imgs, tookImages);
+    });
+    form.addEventListener('paste', function (ev) {
+      var f = ev.clipboardData && ev.clipboardData.files;
+      if (f && f.length) {
+        var pics = Array.prototype.slice.call(f)
+          .filter(function (x) { return /^image\//.test(x.type); });
+        if (pics.length) { ev.preventDefault(); addImages(pics, imgs, tookImages); }
+      }
+    });
+    drawThumbs();
+
+    /* buttons */
+    var btns = el('div', 'btns');
+    var ok = el('button', 'tbtn primary', existing ? 'Update note' : 'Save note');
+    ok.type = 'button';
+    var cancel = el('button', 'tbtn', 'Cancel');
+    cancel.type = 'button';
+    btns.appendChild(ok); btns.appendChild(cancel);
+    form.appendChild(btns);
+
+    function commit() {
+      var text = textArea.value.trim();
+      var code = codeArea.value.replace(/\s+$/, '');
+      if (!text && !code && !imgs.length) {
+        toast('Nothing to save — write a note, paste code, or add a picture.');
+        return;
+      }
+      var chosen = form.querySelector('input[name="' + group + '"]:checked');
+      var note = {
+        id: existing ? existing.id : uid(),
+        kind: chosen ? chosen.value : 'def',
+        label: labelInput.value.trim(),
+        text: text,
+        code: code,
+        images: imgs,
+        author: AUTHOR,
+        mtime: Date.now()          /* drives the cross-machine merge */
+      };
+      if (!data.notes[secId]) data.notes[secId] = [];
+      var at = existing ? indexOfNote(secId, existing.id) : -1;
+      if (at >= 0) data.notes[secId][at] = note;
+      else data.notes[secId].push(note);
+      save(); render();
+      toast(gist && gist.cfg()
+        ? 'Saved — syncing to your gist.'
+        : 'Saved in this browser. Press "Save to file" to make it permanent.');
+    }
+
+    ok.addEventListener('click', commit);
+    cancel.addEventListener('click', function () { render(); });
+    form.addEventListener('keydown', function (ev) {
+      if (ev.key === 'Escape') { ev.preventDefault(); render(); }
+      if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); commit(); }
+    });
+
+    if (replaceNode && replaceNode.parentNode) {
+      replaceNode.parentNode.replaceChild(form, replaceNode);
+    } else {
+      var addrow = host.querySelector('.addrow');
+      if (addrow) host.insertBefore(form, addrow); else host.appendChild(form);
+    }
+    textArea.focus();
+  }
+
+  /* ------------------------------------------------ new topic form */
+  function openTopicForm() {
+    var old = document.getElementById('topic-form');
+    if (old) { old.remove(); return; }
+
+    var form = mark(el('div', 'editor'));
+    form.id = 'topic-form';
+
+    var r1 = el('div', 'row');
+    r1.appendChild(el('label', null, 'Topic title'));
+    var title = document.createElement('input');
+    title.type = 'text';
+    title.placeholder = 'e.g. Memory barriers';
+    r1.appendChild(title);
+    form.appendChild(r1);
+
+    var r2 = el('div', 'row');
+    r2.appendChild(el('label', null, 'Put it after'));
+    var sel = document.createElement('select');
+    sections().forEach(function (s) {
+      var h = s.querySelector('h2');
+      var o = document.createElement('option');
+      o.value = s.id;
+      o.textContent = h ? h.textContent.replace(/\s+/g, ' ').trim() : s.id;
+      sel.appendChild(o);
+    });
+    r2.appendChild(sel);
+    r2.appendChild(el('div', 'hint', 'The new topic and its index entry appear right after the one you pick.'));
+    form.appendChild(r2);
+
+    var btns = el('div', 'btns');
+    var ok = el('button', 'tbtn primary', 'Create topic');
+    ok.type = 'button';
+    var cancel = el('button', 'tbtn', 'Cancel');
+    cancel.type = 'button';
+    btns.appendChild(ok); btns.appendChild(cancel);
+    form.appendChild(btns);
+
+    ok.addEventListener('click', function () {
+      var t = title.value.trim();
+      if (!t) { toast('Give the topic a title first.'); return; }
+      var afterId = sel.value;
+      var sameParent = data.topics.filter(function (x) {
+        return x.after === afterId && !x.deleted;
+      }).length;
+      var anchor = document.getElementById(afterId);
+      var baseNum = anchor && anchor.querySelector('.num')
+        ? anchor.querySelector('.num').textContent.replace(/[^0-9a-z]/gi, '') : '';
+      var id = 'u' + uid();
+      data.topics.push({
+        id: id,
+        title: t,
+        after: afterId,
+        num: baseNum ? baseNum.slice(0, 2) + String.fromCharCode(97 + sameParent) : '+',
+        author: AUTHOR,
+        mtime: Date.now()
+      });
+      save(); render();
+      var made = document.getElementById(id);
+      if (made) made.scrollIntoView({ block: 'start' });
+      toast('Topic added. Now press "+ Add my note" inside it.');
+    });
+    cancel.addEventListener('click', function () { form.remove(); });
+
+    main.insertBefore(form, main.querySelector('section'));
+    title.focus();
+  }
+
+  /* ------------------------------------------------ delete a topic */
+  function topicOps(topic) {
+    var ops = el('div', 'noteops');
+    ops.appendChild(el('span', 'byline', 'written by ' + (topic.author || AUTHOR)));
+    var del = el('button', 'opbtn', 'Delete topic');
+    del.type = 'button';
+    del.addEventListener('click', function () {
+      if (!window.confirm('Delete the topic "' + topic.title + '" and all notes inside it?')) return;
+      topic.deleted = true;
+      topic.mtime = Date.now();
+      (data.notes[topic.id] || []).forEach(function (n) {
+        n.deleted = true; n.mtime = Date.now();
+        n.text = ''; n.code = ''; n.images = [];
+      });
+      save(); render();
+    });
+    ops.appendChild(del);
+    return ops;
+  }
+
+  /* ------------------------------------------------ render everything */
+  function render() {
+    Array.prototype.slice.call(document.querySelectorAll('[data-injected]'))
+      .forEach(function (n) { if (n.parentNode) n.parentNode.removeChild(n); });
+
+    /* 1. custom topics (section + index entry) */
+    data.topics.forEach(function (t) {
+      if (t.deleted) return;
+      var anchor = document.getElementById(t.after);
+      if (!anchor) { var all = sections(); anchor = all[all.length - 1]; }
+      if (!anchor) return;
+      while (anchor.nextElementSibling &&
+             anchor.nextElementSibling.tagName === 'SECTION' &&
+             anchor.nextElementSibling.hasAttribute('data-injected')) {
+        anchor = anchor.nextElementSibling;
+      }
+
+      var sec = mark(el('section'));
+      sec.id = t.id;
+      var h2 = el('h2');
+      h2.appendChild(el('span', 'num', t.num || '+'));
+      h2.appendChild(document.createTextNode(t.title));
+      sec.appendChild(h2);
+      sec.appendChild(el('div', 'h2rule'));
+      sec.appendChild(topicOps(t));
+      anchor.parentNode.insertBefore(sec, anchor.nextSibling);
+
+      var linkAnchor = rail.querySelector('a[href="#' + t.after + '"]');
+      if (linkAnchor) {
+        while (linkAnchor.nextElementSibling &&
+               linkAnchor.nextElementSibling.tagName === 'A' &&
+               linkAnchor.nextElementSibling.hasAttribute('data-injected')) {
+          linkAnchor = linkAnchor.nextElementSibling;
+        }
+      }
+      var a = mark(el('a'));
+      a.href = '#' + t.id;
+      a.appendChild(el('span', 'n', t.num || '+'));
+      a.appendChild(document.createTextNode(t.title));
+      if (linkAnchor) linkAnchor.parentNode.insertBefore(a, linkAnchor.nextSibling);
+      else rail.appendChild(a);
+    });
+
+    /* 2. notes + add button in every section */
+    sections().forEach(function (sec) {
+      var list = (data.notes[sec.id] || []).filter(function (n) { return !n.deleted; });
+      list.forEach(function (note) { sec.appendChild(noteEl(sec.id, note)); });
+
+      var row = mark(el('div', 'addrow'));
+      var btn = el('button', 'addbtn', '+ Add my note');
+      btn.type = 'button';
+      btn.addEventListener('click', function () { openEditor(sec.id, null, null); });
+      row.appendChild(btn);
+      sec.appendChild(row);
+    });
+
+    decorateProblems();
+  }
+
+  /* ==================================================================
+     MY SOLUTIONS
+     Every row of a <table class="probs"> is a practice problem. Clicking
+     one opens an editor for my own code + the logic behind it. The key
+     is "<section id>:<slug of the name>", so reordering or adding rows
+     never detaches a saved solution.
+     ================================================================== */
+  function slug(s) {
+    return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  }
+
+  function probRows() {
+    return Array.prototype.slice.call(main.querySelectorAll('table.probs tr'))
+      .filter(function (r) { return r.cells.length && r.cells[0].tagName === 'TD'; });
+  }
+
+  function probKey(row) {
+    var sec = row.closest('section');
+    return (sec ? sec.id : 'x') + ':' + slug(row.cells[0].textContent);
+  }
+
+  function liveCode(key) {
+    var c = data.code[key];
+    return (c && !c.deleted) ? c : null;
+  }
+
+  function decorateProblems() {
+    var total = 0, solved = 0, tried = 0;
+    probRows().forEach(function (row) {
+      var c = liveCode(probKey(row));
+      var st = c ? (c.status || 'attempted') : 'unsolved';
+      total++;
+      if (st === 'solved') solved++; else if (st === 'attempted') tried++;
+      var dot = mark(el('span', 'pdot ps-' + st));
+      dot.title = st + (c && c.code ? ' · code saved' : '');
+      row.cells[row.cells.length - 1].appendChild(dot);
+    });
+    var box = document.getElementById('progress');
+    if (box) {
+      box.textContent = '';
+      [solved + ' / ' + total + ' solved', tried + ' attempted'].forEach(function (t) {
+        box.appendChild(el('div', null, t));
+      });
+    }
+  }
+
+  var BOILER = 'class Solution {\n    public void solve() {\n        \n    }\n}\n';
+
+  function openCodePanel(row) {
+    var key = probKey(row);
+    var name = row.cells[0].textContent.replace(/\s+/g, ' ').trim();
+    var sec = row.closest('section');
+    var h2 = sec && sec.querySelector('h2');
+    var c = liveCode(key) || {};
+    var status = c.status || 'unsolved';
+
+    /* Not mark()ed on purpose: a background pull calls render(), which
+       sweeps every injected node and would close the editor mid-typing. */
+    var overlay = el('div', 'cp-overlay');
+    var modal = el('div', 'cp-modal');
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    overlay.appendChild(modal);
+
+    var head = el('div', 'cp-head');
+    var ttl = el('div');
+    var numEl = h2 && h2.querySelector('.num');
+    var num = numEl ? numEl.textContent : '';
+    /* heading text without the number and the version pills */
+    var title = '';
+    if (h2) {
+      var copy = h2.cloneNode(true);
+      Array.prototype.slice.call(copy.querySelectorAll('.num, .pill'))
+        .forEach(function (n) { n.remove(); });
+      title = copy.textContent.replace(/\s+/g, ' ').trim();
+    }
+    ttl.appendChild(el('span', 'cp-tag', (num ? num + ' · ' : '') + title));
+    ttl.appendChild(el('h3', null, name));
+    head.appendChild(ttl);
+    var x = el('button', 'tbtn', 'Close');
+    x.type = 'button';
+    head.appendChild(x);
+    modal.appendChild(head);
+
+    var body = el('div', 'cp-body editor');
+
+    var r0 = el('div', 'row');
+    r0.appendChild(el('label', null, 'Status'));
+    var chips = el('div', 'chips');
+    [['unsolved', 'Not solved', 'c-under'], ['attempted', 'Attempted', 'c-ask'],
+     ['solved', 'Solved', 'c-win'], ['revisit', 'Revise again', 'c-trap']].forEach(function (s) {
+      var lab = el('label', 'chip ' + s[2]);
+      var inp = document.createElement('input');
+      inp.type = 'radio'; inp.name = 'cp-status'; inp.value = s[0];
+      if (s[0] === status) inp.checked = true;
+      lab.appendChild(inp);
+      lab.appendChild(el('span', null, s[1]));
+      chips.appendChild(lab);
+    });
+    r0.appendChild(chips);
+    body.appendChild(r0);
+
+    var r1 = el('div', 'row');
+    r1.appendChild(el('label', null, 'Approach — the logic in my own words'));
+    var approach = document.createElement('textarea');
+    approach.placeholder = 'Pattern? Key insight? Where did I get stuck? What would I forget in 3 months?';
+    approach.value = c.approach || '';
+    r1.appendChild(approach);
+    body.appendChild(r1);
+
+    var r2 = el('div', 'row cp-two');
+    var tc = el('div');
+    tc.appendChild(el('label', null, 'Time'));
+    var time = document.createElement('input');
+    time.type = 'text'; time.placeholder = 'O(n)'; time.value = c.time || '';
+    tc.appendChild(time);
+    var sc = el('div');
+    sc.appendChild(el('label', null, 'Space'));
+    var space = document.createElement('input');
+    space.type = 'text'; space.placeholder = 'O(1)'; space.value = c.space || '';
+    sc.appendChild(space);
+    r2.appendChild(tc); r2.appendChild(sc);
+    body.appendChild(r2);
+
+    var r3 = el('div', 'row');
+    r3.appendChild(el('label', null, 'My code'));
+    var code = document.createElement('textarea');
+    code.className = 'code cp-code';
+    code.spellcheck = false;
+    code.value = c.code || BOILER;
+    r3.appendChild(code);
+    var preview = el('pre', 'cp-preview');
+    r3.appendChild(preview);
+    r3.appendChild(el('div', 'hint',
+      'Tab indents · Ctrl+Enter saves · Esc closes. "Preview" shows the code highlighted, the way you will read it later.'));
+    body.appendChild(r3);
+    modal.appendChild(body);
+
+    var foot = el('div', 'cp-foot');
+    var ok = el('button', 'tbtn primary', 'Save');
+    var pv = el('button', 'tbtn', 'Preview');
+    var clr = el('button', 'tbtn', 'Delete solution');
+    var stamp = el('span', 'cp-stamp', c.mtime
+      ? 'last saved ' + new Date(c.mtime).toLocaleString() : 'not saved yet');
+    [ok, pv, clr].forEach(function (b) { b.type = 'button'; foot.appendChild(b); });
+    foot.appendChild(stamp);
+    modal.appendChild(foot);
+
+    function close() {
+      document.removeEventListener('keydown', onKey, true);
+      overlay.remove();
+    }
+
+    function changed() {
+      return approach.value !== (c.approach || '') ||
+             code.value !== (c.code || BOILER) ||
+             time.value !== (c.time || '') || space.value !== (c.space || '');
+    }
+
+    function tryClose() {
+      if (changed() && !window.confirm('Close without saving your changes?')) return;
+      close();
+    }
+
+    function commit() {
+      var chosen = modal.querySelector('input[name="cp-status"]:checked');
+      var st = chosen ? chosen.value : 'unsolved';
+      var src = code.value.replace(/\s+$/, '');
+      if (src === BOILER.replace(/\s+$/, '')) src = '';
+      /* Wrote code but left it on "Not solved"? That is an attempt. */
+      if (st === 'unsolved' && (src || approach.value.trim())) st = 'attempted';
+      data.code[key] = {
+        name: name, status: st, approach: approach.value.trim(),
+        time: time.value.trim(), space: space.value.trim(),
+        code: src, author: AUTHOR, mtime: Date.now()
+      };
+      save();
+      close();
+      render();
+      toast(gist && gist.cfg() ? 'Solution saved — syncing to your gist.'
+                               : 'Solution saved in this browser. Connect Sync to reach it anywhere.');
+    }
+
+    function onKey(ev) {
+      if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); tryClose(); }
+      if (ev.key === 'Enter' && (ev.ctrlKey || ev.metaKey)) { ev.preventDefault(); commit(); }
+    }
+
+    code.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Tab') return;
+      ev.preventDefault();
+      var s = code.selectionStart, e2 = code.selectionEnd;
+      code.value = code.value.slice(0, s) + '    ' + code.value.slice(e2);
+      code.selectionStart = code.selectionEnd = s + 4;
+    });
+
+    pv.addEventListener('click', function () {
+      var showing = preview.style.display === 'block';
+      if (!showing) {
+        preview.textContent = '';
+        var ce = el('code');
+        highlightInto(ce, code.value);
+        preview.appendChild(ce);
+      }
+      preview.style.display = showing ? 'none' : 'block';
+      code.style.display = showing ? '' : 'none';
+      pv.textContent = showing ? 'Preview' : 'Edit';
+    });
+
+    clr.addEventListener('click', function () {
+      if (!liveCode(key)) { close(); return; }
+      if (!window.confirm('Delete your saved solution for "' + name + '"?')) return;
+      data.code[key] = { deleted: true, mtime: Date.now() };
+      save(); close(); render();
+    });
+
+    ok.addEventListener('click', commit);
+    x.addEventListener('click', tryClose);
+    overlay.addEventListener('mousedown', function (ev) { if (ev.target === overlay) tryClose(); });
+    document.addEventListener('keydown', onKey, true);
+
+    document.body.appendChild(overlay);
+    /* A solved problem opens on the highlighted read-only view: revising
+       means reading first, editing second. */
+    if (c.code && status === 'solved') pv.click();
+    else (c.code ? approach : code).focus();
+  }
+
+  main.addEventListener('click', function (ev) {
+    var row = ev.target.closest && ev.target.closest('table.probs tr');
+    if (!row || !row.cells.length || row.cells[0].tagName !== 'TD') return;
+    openCodePanel(row);
+  });
+
+  /* ==================================================================
+     SAVING
+     Two paths:
+       1. Direct write  - browser writes into THIS file on disk.
+                          Needs the File System Access API (Chrome/Edge)
+                          and you pick the file once; the choice is
+                          remembered afterwards.
+       2. Download      - fallback everywhere else. Lands in Downloads,
+                          you move it over the old file yourself.
+     ================================================================== */
+
+  var fileHandle = null;
+
+  function buildHtml() {
+    var clone = document.documentElement.cloneNode(true);
+    Array.prototype.slice.call(clone.querySelectorAll('[data-injected]'))
+      .forEach(function (n) { if (n.parentNode) n.parentNode.removeChild(n); });
+    clone.removeAttribute('data-theme');
+
+    var holder = clone.querySelector('#cf-data');
+    if (holder) holder.textContent = JSON.stringify(data).replace(/</g, '\\u003c');
+
+    return '<!doctype html>\n' + clone.outerHTML;
+  }
+
+  /* ---- remember the chosen file across sessions (IndexedDB) ---- */
+  function openDb() {
+    return new Promise(function (res, rej) {
+      var r = indexedDB.open('springaop-notes-fs', 1);
+      r.onupgradeneeded = function () { r.result.createObjectStore('h'); };
+      r.onsuccess = function () { res(r.result); };
+      r.onerror = function () { rej(r.error); };
+    });
+  }
+  function putHandle(h) {
+    return openDb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx = db.transaction('h', 'readwrite');
+        tx.objectStore('h').put(h, 'file');
+        tx.oncomplete = res;
+        tx.onerror = function () { rej(tx.error); };
+      });
+    });
+  }
+  function getStoredHandle() {
+    return openDb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx = db.transaction('h', 'readonly');
+        var q = tx.objectStore('h').get('file');
+        q.onsuccess = function () { res(q.result || null); };
+        q.onerror = function () { rej(q.error); };
+      });
+    });
+  }
+
+  function hasPermission(h) {
+    var opts = { mode: 'readwrite' };
+    if (!h.queryPermission) return Promise.resolve(true);
+    return h.queryPermission(opts).then(function (p) {
+      if (p === 'granted') return true;
+      return h.requestPermission(opts).then(function (p2) { return p2 === 'granted'; });
+    }).catch(function () { return false; });
+  }
+
+  function pickFile() {
+    return window.showSaveFilePicker({
+      suggestedName: 'SpringAop_Notes.html',
+      types: [{ description: 'HTML page', accept: { 'text/html': ['.html'] } }]
+    });
+  }
+
+  function saveDirect(html) {
+    if (!window.showSaveFilePicker) return Promise.reject(new Error('unsupported'));
+
+    var start = fileHandle
+      ? Promise.resolve(fileHandle)
+      : getStoredHandle().catch(function () { return null; });
+
+    return start
+      .then(function (h) {
+        if (!h) return pickFile();
+        return hasPermission(h).then(function (ok) { return ok ? h : pickFile(); });
+      })
+      .then(function (h) {
+        fileHandle = h;
+        putHandle(h).catch(function () {});
+        return h.createWritable();
+      })
+      .then(function (w) {
+        return w.write(html).then(function () { return w.close(); });
+      })
+      .then(function () {
+        markSaved();
+        toast('Written straight into the file. Nothing to move.');
+      });
+  }
+
+  function downloadFile(html) {
+    var blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'SpringAop_Notes.html';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 3000);
+    markSaved();
+    toast('Downloaded. Move it into src\\Complete_Revesion\\DSA\\ over the old file.');
+  }
+
+  function markSaved() {
+    dirty = false;
+    document.body.classList.remove('unsaved');
+  }
+
+  function exportFile() {
+    var html = buildHtml();
+    saveDirect(html).catch(function (err) {
+      if (err && err.name === 'AbortError') return;   /* you cancelled the dialog */
+      downloadFile(html);
+    });
+  }
+
+  /* ==================================================================
+     GIST SYNC  —  the shared data source
+     The notes live in one secret GitHub gist. Every machine reads it on
+     open and writes back after an edit, so both systems converge without
+     exporting or committing anything.
+
+     The token is kept in localStorage under its own key, deliberately
+     OUTSIDE the `data` object, so "Save to file" can never bake your
+     credential into a file that goes to git.
+     ================================================================== */
+  var gist = (function () {
+    /* Shared with the other revision pages on purpose: connect once on a
+       machine and every notes page on it is connected. Each page keeps
+       its own FILE inside the one gist, so they never overwrite each
+       other. */
+    var CFG   = 'notes-gist-v1';     /* {token, gistId} — this machine only */
+    var FILE  = 'springaop-notes.json';
+    var API   = 'https://api.github.com/gists/';
+    var DEBOUNCE = 1500;
+
+    var timer = null;
+    var busy = false;
+    var queued = false;
+    var lastSeen = 0;                /* remote stamp we last reconciled with */
+    var btn = document.getElementById('btn-sync');
+
+    function cfg() {
+      try {
+        var raw = localStorage.getItem(CFG);
+        if (!raw) return null;
+        var c = JSON.parse(raw);
+        return (c && c.token && c.gistId) ? c : null;
+      } catch (e) { return null; }
+    }
+
+    /* The last gist this machine used, kept under its OWN key so that
+       Disconnect cannot erase it. Without this, reconnecting would meet
+       an empty gist-id box, and an empty box used to mean "create one" -
+       silently making a SECOND gist and stranding every existing note in
+       the first. */
+    var LAST = 'notes-gist-last';
+
+    function lastGistId() {
+      try { return localStorage.getItem(LAST) || ''; } catch (e) { return ''; }
+    }
+
+    function setCfg(c) {
+      try {
+        if (c) {
+          localStorage.setItem(CFG, JSON.stringify(c));
+          localStorage.setItem(LAST, c.gistId);
+        } else {
+          localStorage.removeItem(CFG);      /* LAST deliberately survives */
+        }
+      } catch (e) {}
+    }
+
+    function status(text, cls) {
+      btn.textContent = 'Sync: ' + text;
+      btn.className = 'tbtn' + (cls ? ' ' + cls : '');
+    }
+
+    function req(url, opts) {
+      var c = cfg();
+      opts = opts || {};
+      opts.headers = {
+        'Accept': 'application/vnd.github+json',
+        'Authorization': 'Bearer ' + c.token,
+        'X-GitHub-Api-Version': '2022-11-28'
+      };
+      if (opts.body) opts.headers['Content-Type'] = 'application/json';
+      return fetch(url, opts).then(function (r) {
+        if (r.status === 401 || r.status === 403) {
+          throw new Error('Token rejected by GitHub (401/403). Check it has the "gists" permission and has not expired.');
+        }
+        if (r.status === 404) {
+          throw new Error('Gist not found (404). The id may be wrong, or the token belongs to a different account.');
+        }
+        if (!r.ok) throw new Error('GitHub returned ' + r.status);
+        return r.json();
+      });
+    }
+
+    /* A gist file over ~1 MB comes back truncated, with the full body at
+       raw_url. Images are data: URIs, so this is reachable in practice. */
+    function contentOf(g) {
+      var f = g.files && g.files[FILE];
+      if (!f) return Promise.resolve(null);
+      if (!f.truncated) return Promise.resolve(f.content);
+      return fetch(f.raw_url).then(function (r) { return r.text(); });
+    }
+
+    function parse(txt) {
+      if (!txt) return null;
+      var p;
+      try { p = JSON.parse(txt); } catch (e) { return null; }
+      if (!p || typeof p !== 'object') return null;
+      if (!p.data || typeof p.data !== 'object') return null;
+      if (!Array.isArray(p.data.topics)) p.data.topics = [];
+      if (!p.data.notes || typeof p.data.notes !== 'object') p.data.notes = {};
+      return p;
+    }
+
+    function payload() {
+      return JSON.stringify({
+        v: 1,
+        updatedAt: Date.now(),
+        device: navigator.platform || 'unknown',
+        data: data
+      }, null, 1);
+    }
+
+    /* ---- pull: merge the server copy into ours ---- */
+    function pull(quiet) {
+      if (!cfg()) return Promise.resolve(false);
+      status('checking', 'busy');
+      return req(API + cfg().gistId)
+        .then(contentOf)
+        .then(function (txt) {
+          var remote = parse(txt);
+          if (!remote) { lastSeen = 0; status('on', 'on'); return false; }
+
+          var mineSig = sig(data);
+          var theirSig = sig(remote.data);
+          data = prune(mergeData(data, remote.data));
+          lastSeen = remote.updatedAt || 0;
+
+          var mergedSig = sig(data);
+          var gained = mergedSig !== mineSig;    /* server had rows we lacked */
+          var owed   = mergedSig !== theirSig;   /* we have rows server lacks */
+
+          if (gained) {
+            cache();
+            render();
+            if (!quiet) toast('Pulled from gist — ' + countLive(data) + ' notes now here.');
+          }
+          status('on', 'on');
+          if (owed) push(true);
+          else markSaved();
+          return gained;
+        })
+        .catch(function (e) {
+          status('error', 'err');
+          if (!quiet) toast(e.message);
+          return false;
+        });
+    }
+
+    /* ---- push: write our copy back, re-merging if we were beaten ---- */
+    function push(quiet) {
+      if (!cfg()) return Promise.resolve(false);
+      if (busy) { queued = true; return Promise.resolve(false); }
+      busy = true;
+      status('saving', 'busy');
+
+      /* Read-before-write. Without this, two machines editing different
+         sections would each overwrite the other's section wholesale. */
+      return req(API + cfg().gistId)
+        .then(contentOf)
+        .then(function (txt) {
+          var remote = parse(txt);
+          if (remote && (remote.updatedAt || 0) > lastSeen) {
+            data = prune(mergeData(data, remote.data));
+            cache();
+            render();
+          }
+          var body = {};
+          body[FILE] = { content: payload() };
+          return req(API + cfg().gistId, {
+            method: 'PATCH',
+            body: JSON.stringify({ files: body })
+          });
+        })
+        .then(function (g) {
+          return contentOf(g).then(function (t) {
+            var back = parse(t);
+            lastSeen = back ? (back.updatedAt || 0) : Date.now();
+          });
+        })
+        .then(function () {
+          markSaved();
+          status('on', 'on');
+          if (!quiet) toast('Synced. Open the page on your other system to see it.');
+          return true;
+        })
+        .catch(function (e) {
+          status('error', 'err');
+          toast('Not synced — ' + e.message);
+          return false;
+        })
+        .then(function (r) {
+          busy = false;
+          if (queued) { queued = false; schedulePush(); }
+          return r;
+        });
+    }
+
+    function schedulePush() {
+      if (timer) clearTimeout(timer);
+      status('saving', 'busy');
+      timer = setTimeout(function () { timer = null; push(true); }, DEBOUNCE);
+    }
+
+    /* ---- find the gist this account already has ----
+       Every notes page stores its own file inside the one shared gist, so
+       spotting any of these names identifies it. That means a machine can
+       rediscover the gist from the token alone - no need to carry the id
+       between systems, and no way to accidentally start a second one. */
+    var KNOWN = ['springaop-notes.json', 'springweb-notes.json', 'springcore-notes.json', 'java8plus-notes.json', 'dsa-notes.json', 'oops-notes.json', 'multithreading-notes.json',
+                 'collectionframework-notes.json'];
+
+    function findGist(token) {
+      return fetch('https://api.github.com/gists?per_page=100', {
+        headers: {
+          'Accept': 'application/vnd.github+json',
+          'Authorization': 'Bearer ' + token,
+          'X-GitHub-Api-Version': '2022-11-28'
+        }
+      }).then(function (r) {
+        if (r.status === 401 || r.status === 403) {
+          throw new Error('GitHub rejected that token. It needs the "gists" permission (read and write).');
+        }
+        if (!r.ok) throw new Error('Could not list your gists - GitHub returned ' + r.status);
+        return r.json();
+      }).then(function (list) {
+        var hits = (list || []).filter(function (g) {
+          for (var i = 0; i < KNOWN.length; i++) {
+            if (g.files && g.files[KNOWN[i]]) return true;
+          }
+          return false;
+        });
+        hits.sort(function (a, b) {          /* newest first */
+          return String(b.updated_at).localeCompare(String(a.updated_at));
+        });
+        return hits.length ? hits[0].id : null;
+      });
+    }
+
+    /* ---- first-time setup: make the gist for them ---- */
+    function create(token) {
+      var body = {
+        description: 'Java revision notes (synced by the Complete_Revesion notes pages)',
+        'public': false,
+        files: {}
+      };
+      body.files[FILE] = { content: payload() };
+      return fetch('https://api.github.com/gists', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/vnd.github+json',
+          'Authorization': 'Bearer ' + token,
+          'Content-Type': 'application/json',
+          'X-GitHub-Api-Version': '2022-11-28'
+        },
+        body: JSON.stringify(body)
+      }).then(function (r) {
+        if (r.status === 401 || r.status === 403) {
+          throw new Error('GitHub rejected that token. It needs the "gists" permission (read and write).');
+        }
+        if (!r.ok) throw new Error('Could not create the gist — GitHub returned ' + r.status);
+        return r.json();
+      });
+    }
+
+    /* ---- the settings panel ---- */
+    function openPanel() {
+      var old = document.querySelector('.syncpanel');
+      if (old) { old.remove(); return; }
+
+      var c = cfg();
+      var form = mark(el('div', 'editor syncpanel'));
+
+      var head = el('div', 'row');
+      head.appendChild(el('label', null, 'Sync notes across your systems'));
+      var steps = el('ol');
+      [
+        'Open github.com/settings/personal-access-tokens and make a fine-grained token.',
+        'Set Account permissions → Gists → Read and write. Nothing else is needed.',
+        'Paste it below and press Connect, then do the same once on your '
+          + 'other system. The gist id is optional.'
+      ].forEach(function (s) { steps.appendChild(el('li', null, s)); });
+      head.appendChild(steps);
+      form.appendChild(head);
+
+      var r1 = el('div', 'row');
+      r1.appendChild(el('label', null, 'GitHub token'));
+      var tok = document.createElement('input');
+      tok.type = 'text';
+      tok.placeholder = 'github_pat_...';
+      tok.value = c ? c.token : '';
+      tok.autocomplete = 'off'; tok.spellcheck = false;
+      r1.appendChild(tok);
+      var warn = el('div', 'warn',
+        'Stored only in this browser, never in the HTML file and never in git.');
+      r1.appendChild(warn);
+      form.appendChild(r1);
+
+      var r2 = el('div', 'row');
+      r2.appendChild(el('label', null,
+        'Gist id — optional, found automatically from your token'));
+      var gid = document.createElement('input');
+      gid.type = 'text';
+      gid.placeholder = 'leave empty: reuses the gist this account already has';
+      gid.value = c ? c.gistId : lastGistId();
+      gid.autocomplete = 'off'; gid.spellcheck = false;
+      r2.appendChild(gid);
+      form.appendChild(r2);
+
+      var state = el('div', 'state', c
+        ? 'Connected to gist ' + c.gistId
+        : (lastGistId()
+            ? 'Not connected. Connect reuses gist ' + lastGistId() + '.'
+            : 'Not connected — notes stay in this browser only.'));
+      form.appendChild(state);
+
+      var btns = el('div', 'btns');
+      var ok = el('button', 'tbtn primary', c ? 'Save changes' : 'Connect');
+      ok.type = 'button';
+      var now = el('button', 'tbtn', 'Sync now');
+      now.type = 'button';
+      var off = el('button', 'tbtn', 'Disconnect');
+      off.type = 'button';
+      var close = el('button', 'tbtn', 'Close');
+      close.type = 'button';
+      btns.appendChild(ok); btns.appendChild(now);
+      if (c) btns.appendChild(off);
+      btns.appendChild(close);
+      form.appendChild(btns);
+
+      ok.addEventListener('click', function () {
+        var t = tok.value.trim();
+        var g = gid.value.trim();
+        if (!t) { toast('Paste a token first.'); return; }
+
+        if (!g) {
+          /* An empty box does NOT mean "make a new gist". Look for the one
+             this account already has first, and only ever create after an
+             explicit yes. */
+          state.textContent = 'Looking for your existing notes gist…';
+          findGist(t).then(function (found) {
+            if (found) {
+              setCfg({ token: t, gistId: found });
+              lastSeen = 0;
+              form.remove();
+              toast('Reconnected to your existing gist ' + found + '.');
+              return pull(false).then(function () { if (dirty) push(false); });
+            }
+            if (!window.confirm(
+                  'No existing notes gist was found on this account.\n\n' +
+                  'Create a NEW empty one?\n\n' +
+                  'If your notes are already in a gist, press Cancel and ' +
+                  'paste its id instead.')) {
+              state.textContent = 'Cancelled. Paste the gist id, then press Connect.';
+              return null;
+            }
+            state.textContent = 'Creating a secret gist…';
+            return create(t).then(function (res) {
+              setCfg({ token: t, gistId: res.id });
+              lastSeen = 0;
+              status('on', 'on');
+              form.remove();
+              toast('Gist created. Its id is ' + res.id +
+                    ' — enter that id with the same token on your other system.');
+              window.prompt('Copy this gist id and use it on your other system:', res.id);
+            });
+          }).catch(function (e) {
+            state.textContent = e.message;
+            toast(e.message);
+          });
+          return;
+        }
+
+        setCfg({ token: t, gistId: g });
+        lastSeen = 0;
+        form.remove();
+        pull(false).then(function () { if (dirty) push(false); });
+      });
+
+      now.addEventListener('click', function () {
+        pull(false).then(function () { return push(false); });
+      });
+
+      off.addEventListener('click', function () {
+        if (!window.confirm('Stop syncing on this machine? Your notes stay both here and in the gist.')) return;
+        var keep = (cfg() || {}).gistId || lastGistId();
+        setCfg(null);
+        status('off', '');
+        form.remove();
+        toast('Disconnected. Gist ' + keep + ' is remembered, so pressing ' +
+              'Connect again reuses it instead of making a new one.');
+      });
+
+      close.addEventListener('click', function () { form.remove(); });
+
+      main.insertBefore(form, main.querySelector('section'));
+      (c ? gid : tok).focus();
+    }
+
+    function init() {
+      if (!cfg()) { status('off', ''); return; }
+      status('on', 'on');
+      pull(true);
+      /* Coming back to the tab is the natural moment to check whether the
+         other machine wrote something. */
+      window.addEventListener('focus', function () {
+        if (!busy && !timer) pull(true);
+      });
+    }
+
+    btn.addEventListener('click', openPanel);
+
+    return { cfg: cfg, pull: pull, push: push, schedulePush: schedulePush, init: init };
+  })();
+
+  document.getElementById('btn-topic').addEventListener('click', openTopicForm);
+  document.getElementById('btn-export').addEventListener('click', exportFile);
+
+  window.addEventListener('beforeunload', function (ev) {
+    if (!dirty) return;
+    ev.preventDefault();
+    ev.returnValue = '';
+  });
+
+  render();
+  gist.init();
+})();
+</script>
+
+</body>
+</html>
